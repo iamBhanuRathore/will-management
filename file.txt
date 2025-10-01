@@ -1,0 +1,1108 @@
+// import { useEffect, useState } from "react";
+// import { decryptData, multiLingualString } from "../../Common/Util";
+// import { Col, Row } from "reactstrap";
+// import TextBoxCompnonents from "../../Common/TextBox";
+// import { Button, Loader, ResponsePopUp } from "../../Common";
+// import { callAPI, getpasswordcomplexitydataApi, savepasswordcomplexitydataApi } from "../../Common/APIHandler";
+
+// const defaultFormValues = {
+//   settingvalue: 1,
+//   minLength: 8,
+//   maxLength: 0,
+//   minChar: 0,
+//   maxChar: 0,
+//   minNumber: 0,
+//   maxNumber: 0,
+//   minCapitalChar: 0,
+//   maxCapitalChar: 0,
+//   minSmallChar: 0,
+//   maxSmallChar: 0,
+//   minSpecialChar: 0,
+//   maxSpecialChar: 0,
+// };
+
+// const parseRegexToForm = (regexString, formValues) => {
+//   const newFormValues = { ...formValues };
+
+//   if (typeof regexString !== "string" || regexString.length === 0) {
+//     return newFormValues;
+//   }
+
+//   // Helper function to safely extract a number from a regex match
+//   const extractValue = (pattern) => {
+//     const match = regexString.match(pattern);
+//     return match ? parseInt(match[1], 10) : 0;
+//   };
+
+//   // 1. Extract Password Length from the .{min,max}$ part
+//   const lengthMatch = regexString.match(/\.{(\d+),(\d*)}\$/);
+//   if (lengthMatch) {
+//     newFormValues.minLength = parseInt(lengthMatch[1], 10);
+//     newFormValues.maxLength = lengthMatch[2] ? parseInt(lengthMatch[2], 10) : 0;
+//   }
+
+//   // 2. Define patterns for all character rules
+//   // Fixed regex patterns - properly escaped for JavaScript
+//   const patterns = {
+//     // Positive lookahead patterns (minimum requirements)
+//     minChar: /\(\?\=\(\?\:\[\^a-zA-Z\]\*\[a-zA-Z\]\)\{(\d+),\}\)/,
+//     minNumber: /\(\?\=\(\?\:\[\^0-9\]\*\[0-9\]\)\{(\d+),\}\)/,
+//     minCapitalChar: /\(\?\=\(\?\:\[\^A-Z\]\*\[A-Z\]\)\{(\d+),\}\)/,
+//     minSmallChar: /\(\?\=\(\?\:\[\^a-z\]\*\[a-z\]\)\{(\d+),\}\)/,
+//     minSpecialChar: /\(\?\=\(\?\:\[\^!@#\$%\^&\*\]\*\[!@#\$%\^&\*\]\)\{(\d+),\}\)/,
+
+//     // Negative lookahead patterns (maximum requirements)
+//     maxChar: /\(\?\!\.\*\(\?\:\[\^a-zA-Z\]\*\[a-zA-Z\]\)\{(\d+),\}\)/,
+//     maxNumber: /\(\?\!\.\*\(\?\:\[\^0-9\]\*\[0-9\]\)\{(\d+),\}\)/,
+//     maxCapitalChar: /\(\?\!\.\*\(\?\:\[\^A-Z\]\*\[A-Z\]\)\{(\d+),\}\)/,
+//     maxSmallChar: /\(\?\!\.\*\(\?\:\[\^a-z\]\*\[a-z\]\)\{(\d+),\}\)/,
+//     maxSpecialChar: /\(\?\!\.\*\(\?\:\[\^!@#\$%\^&\*\]\*\[!@#\$%\^&\*\]\)\{(\d+),\}\)/,
+//   };
+
+//   // 3. Extract all values and populate the form state object
+//   // For min values, extract directly
+//   newFormValues.minChar = extractValue(patterns.minChar);
+//   newFormValues.minNumber = extractValue(patterns.minNumber);
+//   newFormValues.minCapitalChar = extractValue(patterns.minCapitalChar);
+//   newFormValues.minSmallChar = extractValue(patterns.minSmallChar);
+//   newFormValues.minSpecialChar = extractValue(patterns.minSpecialChar);
+
+//   // For max values, subtract 1 because the regex looks for (max + 1)
+//   const maxCharValue = extractValue(patterns.maxChar);
+//   newFormValues.maxChar = maxCharValue > 0 ? maxCharValue - 1 : 0;
+
+//   const maxNumberValue = extractValue(patterns.maxNumber);
+//   newFormValues.maxNumber = maxNumberValue > 0 ? maxNumberValue - 1 : 0;
+
+//   const maxCapitalCharValue = extractValue(patterns.maxCapitalChar);
+//   newFormValues.maxCapitalChar = maxCapitalCharValue > 0 ? maxCapitalCharValue - 1 : 0;
+
+//   const maxSmallCharValue = extractValue(patterns.maxSmallChar);
+//   newFormValues.maxSmallChar = maxSmallCharValue > 0 ? maxSmallCharValue - 1 : 0;
+
+//   const maxSpecialCharValue = extractValue(patterns.maxSpecialChar);
+//   newFormValues.maxSpecialChar = maxSpecialCharValue > 0 ? maxSpecialCharValue - 1 : 0;
+
+//   return newFormValues;
+// };
+
+// const PasswordConfiguration = () => {
+//   // const userId = decryptData("storage", "Profile_Data")?.UserId;
+//   const [formValues, setFormValues] = useState(defaultFormValues);
+//   const [loading, setLoading] = useState(false);
+//   const [responsePopUp, setResponsePopUp] = useState({ isOpen: false, content: "", type: "" });
+//   const initialData = async () => {
+//     try {
+//       setLoading(true);
+//       const { settingvalue, ...inputs } = { ...formValues };
+//       const response = await callAPI(getpasswordcomplexitydataApi);
+//       if (Array.isArray(response.Data) && response.Data?.[0].passwordregex) {
+//         const parsedValues = parseRegexToForm(response.Data[0].passwordregex, inputs);
+//         setFormValues({ ...parsedValues, settingvalue });
+//       } else {
+//         setResponsePopUp({
+//           isOpen: true,
+//           content: response.Message,
+//           type: "error",
+//         });
+//       }
+//     } catch (error) {
+//       setResponsePopUp({
+//         isOpen: true,
+//         content: error.message || "API Error",
+//         type: "error",
+//       });
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+//   useEffect(() => {
+//     initialData();
+//   }, []);
+
+//   const handleSubmit = async () => {
+//     // Validation
+//     if (!formValues.minLength || formValues.minLength <= 0) {
+//       setResponsePopUp({
+//         isOpen: true,
+//         content: "Minimum Length of Password is Required and must be greater than 0!",
+//         type: "error",
+//       });
+//       return;
+//     }
+
+//     // Additional validations
+//     if (formValues.maxLength > 0 && formValues.maxLength < formValues.minLength) {
+//       setResponsePopUp({
+//         isOpen: true,
+//         content: "Maximum length cannot be less than minimum length!",
+//         type: "error",
+//       });
+//       return;
+//     }
+//     if (formValues.maxChar > 0 && formValues.maxChar < formValues.minChar) {
+//       setResponsePopUp({
+//         isOpen: true,
+//         content: "Maximum Character cannot be less than minimum Character!",
+//         type: "error",
+//       });
+//       return;
+//     }
+//     if (formValues.maxCapitalChar > 0 && formValues.maxChar < formValues.minCapitalChar) {
+//       setResponsePopUp({
+//         isOpen: true,
+//         content: "Maximum Capital Character cannot be less than minimum Capital Character!",
+//         type: "error",
+//       });
+//       return;
+//     }
+//     if (formValues.maxSmallChar > 0 && formValues.maxSmallChar < formValues.minSmallChar) {
+//       setResponsePopUp({
+//         isOpen: true,
+//         content: "Maximum small Character cannot be less than minimum small Character!",
+//         type: "error",
+//       });
+//       return;
+//     }
+//     if (formValues.maxNumber > 0 && formValues.maxNumber < formValues.minNumber) {
+//       setResponsePopUp({
+//         isOpen: true,
+//         content: "Maximum number cannot be less than minimum number!",
+//         type: "error",
+//       });
+//       return;
+//     }
+//     if (formValues.maxSpecialChar > 0 && formValues.maxSpecialChar < formValues.minSpecialChar) {
+//       setResponsePopUp({
+//         isOpen: true,
+//         content: "Maximum special Character cannot be less than minimum special Character!",
+//         type: "error",
+//       });
+//       return;
+//     }
+
+//     // Build regex string
+//     let regexString = "^";
+
+//     // Text Character (alphabetic) count
+//     if (formValues.minChar > 0) {
+//       regexString += `(?=(?:[^a-zA-Z]*[a-zA-Z]){${formValues.minChar},})`;
+//     }
+//     if (formValues.maxChar > 0) {
+//       regexString += `(?!.*(?:[^a-zA-Z]*[a-zA-Z]){${parseInt(formValues.maxChar, 10) + 1},})`;
+//     }
+
+//     // Number count
+//     if (formValues.minNumber > 0) {
+//       regexString += `(?=(?:[^0-9]*[0-9]){${formValues.minNumber},})`;
+//     }
+//     if (formValues.maxNumber > 0) {
+//       regexString += `(?!.*(?:[^0-9]*[0-9]){${parseInt(formValues.maxNumber, 10) + 1},})`;
+//     }
+
+//     // Capital Character count
+//     if (formValues.minCapitalChar > 0) {
+//       regexString += `(?=(?:[^A-Z]*[A-Z]){${formValues.minCapitalChar},})`;
+//     }
+//     if (formValues.maxCapitalChar > 0) {
+//       regexString += `(?!.*(?:[^A-Z]*[A-Z]){${parseInt(formValues.maxCapitalChar, 10) + 1},})`;
+//     }
+
+//     // Small Character count
+//     if (formValues.minSmallChar > 0) {
+//       regexString += `(?=(?:[^a-z]*[a-z]){${formValues.minSmallChar},})`;
+//     }
+//     if (formValues.maxSmallChar > 0) {
+//       regexString += `(?!.*(?:[^a-z]*[a-z]){${parseInt(formValues.maxSmallChar, 10) + 1},})`;
+//     }
+
+//     // Special Character count (using the same character set as in parsing)
+//     if (formValues.minSpecialChar > 0) {
+//       regexString += `(?=(?:[^!@#$%^&*]*[!@#$%^&*]){${formValues.minSpecialChar},})`;
+//     }
+//     if (formValues.maxSpecialChar > 0) {
+//       regexString += `(?!.*(?:[^!@#$%^&*]*[!@#$%^&*]){${parseInt(formValues.maxSpecialChar, 10) + 1},})`;
+//     }
+
+//     // Password Length
+//     regexString += `.{${formValues.minLength},${formValues.maxLength > 0 ? formValues.maxLength : ""}}$`;
+
+//     try {
+//       setLoading(true);
+//       const finalRegex = new RegExp(regexString);
+//       const payload = {
+//         settingvalue: formValues.settingvalue,
+//         passwordregex: finalRegex.source,
+//       };
+//       console.log("Generated Regex:", finalRegex);
+//       console.log("Regex String:", regexString);
+//       const response = await callAPI(savepasswordcomplexitydataApi, payload);
+//       if (response.Status) {
+//         setResponsePopUp({
+//           isOpen: true,
+//           content: response.Message,
+//           type: "success",
+//         });
+//       } else {
+//         setResponsePopUp({
+//           isOpen: true,
+//           content: response.Message,
+//           type: "error",
+//         });
+//       }
+//     } catch (error) {
+//       setResponsePopUp({
+//         isOpen: true,
+//         content: "Error generating password validation rules. Please check your configuration.",
+//         type: "error",
+//       });
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const handleChange = (e) => {
+//     const { name, value } = e.target;
+//     // Convert to number for numeric fields, ensure non-negative values
+//     const numericValue = Math.max(0, parseInt(value, 10) || 0);
+//     setFormValues((prev) => ({ ...prev, [name]: numericValue }));
+//   };
+
+//   return (
+//     <div>
+//       <div className="report-master-form">
+//         <div className="tab-content">
+//           <section className="contentWrapper" style={{ overflow: "hidden" }}>
+//             <Loader show={loading} />
+//             <Row className="mt-2">
+//               <Col
+//                 xl={6}
+//                 lg={6}
+//                 md={6}
+//                 sm={12}
+//                 xs={12}
+//                 style={{
+//                   margin: "0px !important",
+//                   paddingTop: "5px",
+//                   paddingBottom: "5px",
+//                 }}
+//               >
+//                 <div className="description mb-2 ml-1">
+//                   <p>Password Length</p>
+//                   <span style={{ fontSize: "12px", fontWeight: "900", color: "#F00" }}>0 Means No Effect on the Value </span>
+//                 </div>
+//                 <Row>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="minLength"
+//                       id="minLength"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Min")}
+//                       value={formValues.minLength}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="1"
+//                     />
+//                   </Col>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="maxLength"
+//                       id="maxLength"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Max")}
+//                       value={formValues.maxLength}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                 </Row>
+//               </Col>
+//               <Col
+//                 xl={6}
+//                 lg={6}
+//                 md={6}
+//                 sm={12}
+//                 xs={12}
+//                 style={{
+//                   margin: "0px !important",
+//                   paddingTop: "5px",
+//                   paddingBottom: "5px",
+//                 }}
+//               >
+//                 <div className="description mb-2 ml-1">
+//                   <p>Text Character</p>
+//                 </div>
+//                 <Row>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="minChar"
+//                       id="minChar"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Min")}
+//                       value={formValues.minChar}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="maxChar"
+//                       id="maxChar"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Max")}
+//                       value={formValues.maxChar}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                 </Row>
+//               </Col>
+//               <Col
+//                 xl={6}
+//                 lg={6}
+//                 md={6}
+//                 sm={12}
+//                 xs={12}
+//                 style={{
+//                   margin: "0px !important",
+//                   paddingTop: "5px",
+//                   paddingBottom: "5px",
+//                 }}
+//               >
+//                 <div className="description mb-2 ml-1">
+//                   <p>Number</p>
+//                 </div>
+//                 <Row>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="minNumber"
+//                       id="minNumber"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Min")}
+//                       value={formValues.minNumber}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="maxNumber"
+//                       id="maxNumber"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Max")}
+//                       value={formValues.maxNumber}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                 </Row>
+//               </Col>
+//               <Col
+//                 xl={6}
+//                 lg={6}
+//                 md={6}
+//                 sm={12}
+//                 xs={12}
+//                 style={{
+//                   margin: "0px !important",
+//                   paddingTop: "5px",
+//                   paddingBottom: "5px",
+//                 }}
+//               >
+//                 <div className="description mb-2 ml-1">
+//                   <p>Capital Character</p>
+//                 </div>
+//                 <Row>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="minCapitalChar"
+//                       id="minCapitalChar"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Min")}
+//                       value={formValues.minCapitalChar}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="maxCapitalChar"
+//                       id="maxCapitalChar"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Max")}
+//                       value={formValues.maxCapitalChar}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                 </Row>
+//               </Col>
+//               <Col
+//                 xl={6}
+//                 lg={6}
+//                 md={6}
+//                 sm={12}
+//                 xs={12}
+//                 style={{
+//                   margin: "0px !important",
+//                   paddingTop: "5px",
+//                   paddingBottom: "5px",
+//                 }}
+//               >
+//                 <div className="description mb-2 ml-1">
+//                   <p>Small Character</p>
+//                 </div>
+//                 <Row>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="minSmallChar"
+//                       id="minSmallChar"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Min")}
+//                       value={formValues.minSmallChar}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="maxSmallChar"
+//                       id="maxSmallChar"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Max")}
+//                       value={formValues.maxSmallChar}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                 </Row>
+//               </Col>
+//               <Col
+//                 xl={6}
+//                 lg={6}
+//                 md={6}
+//                 sm={12}
+//                 xs={12}
+//                 style={{
+//                   margin: "0px !important",
+//                   paddingTop: "5px",
+//                   paddingBottom: "5px",
+//                 }}
+//               >
+//                 <div className="description mb-2 ml-1">
+//                   <p>Special Character</p>
+//                 </div>
+//                 <Row>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="minSpecialChar"
+//                       id="minSpecialChar"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Min")}
+//                       value={formValues.minSpecialChar}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                   <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+//                     <TextBoxCompnonents
+//                       name="maxSpecialChar"
+//                       id="maxSpecialChar"
+//                       type="number"
+//                       cssClass="e-outline"
+//                       placeholder={multiLingualString("Max")}
+//                       value={formValues.maxSpecialChar}
+//                       onChange={handleChange}
+//                       enabled={!loading}
+//                       floatLabelType="Auto"
+//                       min="0"
+//                     />
+//                   </Col>
+//                 </Row>
+//               </Col>
+//             </Row>
+//             <div className="grid_submit_button_style">
+//               <Button cssClass="e-info" handleClick={handleSubmit}>
+//                 <span className="button_font_style">{multiLingualString("Submit")}</span>
+//               </Button>
+//             </div>
+//           </section>
+//           <ResponsePopUp maxWidth={"xs"} open={responsePopUp.isOpen} onClose={() => setResponsePopUp({ ...responsePopUp, isOpen: false })} content={responsePopUp.content} type={responsePopUp.type} />
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default PasswordConfiguration;
+
+import { useEffect, useState } from "react";
+import { decryptData, multiLingualString } from "../../Common/Util";
+import { Col, Row } from "reactstrap";
+import TextBoxCompnonents from "../../Common/TextBox";
+import { Button, Loader, ResponsePopUp } from "../../Common";
+import { callAPI, getpasswordcomplexitydataApi, savepasswordcomplexitydataApi } from "../../Common/APIHandler";
+import { FilterCheckbox } from "../../Common/Checkbox/FilterCheckbox";
+
+const defaultFormValues = {
+  settingvalue: 1,
+  minLength: 8,
+  maxLength: 0,
+  minChar: false,
+  // maxChar: 0,
+  minNumber: false,
+  // maxNumber: 0,
+  minCapitalChar: false,
+  // maxCapitalChar: 0,
+  minSmallChar: false,
+  // maxSmallChar: 0,
+  minSpecialChar: false,
+  // maxSpecialChar: 0,
+};
+
+const parseRegexToForm = (regexString, formValues) => {
+  const newFormValues = { ...formValues };
+
+  if (typeof regexString !== "string" || regexString.length === 0) {
+    return newFormValues;
+  }
+
+  // Helper function to safely extract a number from a regex match
+  const extractValue = (pattern) => {
+    const match = regexString.match(pattern);
+    return match ? parseInt(match[1], 10) : 0;
+  };
+
+  // 1. Extract Password Length from the .{min,max}$ part
+  const lengthMatch = regexString.match(/\.{(\d+),(\d*)}\$/);
+  if (lengthMatch) {
+    newFormValues.minLength = parseInt(lengthMatch[1], 10);
+    newFormValues.maxLength = lengthMatch[2] ? parseInt(lengthMatch[2], 10) : 0;
+  }
+
+  // 2. Define patterns for all character rules
+  // Fixed regex patterns - properly escaped for JavaScript
+  const patterns = {
+    // Positive lookahead patterns (minimum requirements)
+    minChar: /\(\?\=\(\?\:\[\^a-zA-Z\]\*\[a-zA-Z\]\)\{(\d+),\}\)/,
+    minNumber: /\(\?\=\(\?\:\[\^0-9\]\*\[0-9\]\)\{(\d+),\}\)/,
+    minCapitalChar: /\(\?\=\(\?\:\[\^A-Z\]\*\[A-Z\]\)\{(\d+),\}\)/,
+    minSmallChar: /\(\?\=\(\?\:\[\^a-z\]\*\[a-z\]\)\{(\d+),\}\)/,
+    minSpecialChar: /\(\?\=\(\?\:\[\^!@#\$%\^&\*\]\*\[!@#\$%\^&\*\]\)\{(\d+),\}\)/,
+  };
+
+  newFormValues.minChar = !!extractValue(patterns.minChar);
+  newFormValues.minNumber = !!extractValue(patterns.minNumber);
+  newFormValues.minCapitalChar = !!extractValue(patterns.minCapitalChar);
+  newFormValues.minSmallChar = !!extractValue(patterns.minSmallChar);
+  newFormValues.minSpecialChar = !!extractValue(patterns.minSpecialChar);
+  return newFormValues;
+};
+
+const PasswordConfiguration = () => {
+  // const userId = decryptData("storage", "Profile_Data")?.UserId;
+  const [formValues, setFormValues] = useState(defaultFormValues);
+  const [loading, setLoading] = useState(false);
+  const [responsePopUp, setResponsePopUp] = useState({ isOpen: false, content: "", type: "" });
+  const initialData = async () => {
+    try {
+      setLoading(true);
+      const { settingvalue, ...inputs } = { ...formValues };
+      const response = await callAPI(getpasswordcomplexitydataApi);
+      if (Array.isArray(response.Data) && response.Data?.[0].passwordregex) {
+        const parsedValues = parseRegexToForm(response.Data[0].passwordregex, inputs);
+        setFormValues({ ...parsedValues, settingvalue });
+      } else {
+        setResponsePopUp({
+          isOpen: true,
+          content: response.Message,
+          type: "error",
+        });
+      }
+    } catch (error) {
+      setResponsePopUp({
+        isOpen: true,
+        content: error.message || "API Error",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    initialData();
+  }, []);
+
+  const handleSubmit = async () => {
+    // Validation
+    if (!formValues.minLength || formValues.minLength <= 0) {
+      setResponsePopUp({
+        isOpen: true,
+        content: "Minimum Length of Password is Required and must be greater than 0!",
+        type: "error",
+      });
+      return;
+    }
+
+    // Additional validations
+    if (formValues.maxLength > 0 && formValues.maxLength < formValues.minLength) {
+      setResponsePopUp({
+        isOpen: true,
+        content: "Maximum length cannot be less than minimum length!",
+        type: "error",
+      });
+      return;
+    }
+
+    // Build regex string
+    let regexString = "^";
+
+    // Text Character (alphabetic) count
+    if (formValues.minChar) {
+      regexString += `(?=(?:[^a-zA-Z]*[a-zA-Z]){1,})`;
+    }
+
+    if (formValues.minNumber) {
+      regexString += `(?=(?:[^0-9]*[0-9]){1,})`;
+    }
+
+    if (formValues.minCapitalChar) {
+      regexString += `(?=(?:[^A-Z]*[A-Z]){1,})`;
+    }
+
+    if (formValues.minSmallChar) {
+      regexString += `(?=(?:[^a-z]*[a-z]){1,})`;
+    }
+
+    if (formValues.minSpecialChar) {
+      regexString += `(?=(?:[^!@#$%^&*]*[!@#$%^&*]){1,})`;
+    }
+
+    regexString += `.{${formValues.minLength},${formValues.maxLength > 0 ? formValues.maxLength : ""}}$`;
+
+    try {
+      setLoading(true);
+      const finalRegex = new RegExp(regexString);
+      const payload = {
+        settingvalue: formValues.settingvalue,
+        passwordregex: finalRegex.source,
+      };
+      const response = await callAPI(savepasswordcomplexitydataApi, payload);
+      if (response.Status) {
+        setResponsePopUp({
+          isOpen: true,
+          content: response.Message,
+          type: "success",
+        });
+      } else {
+        setResponsePopUp({
+          isOpen: true,
+          content: response.Message,
+          type: "error",
+        });
+      }
+    } catch (error) {
+      setResponsePopUp({
+        isOpen: true,
+        content: "Error generating password validation rules. Please check your configuration.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleCheckBox = (name, value) => {
+    let form = { ...formValues };
+    form[name] = !value;
+    setFormValues(form);
+  };
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    // Convert to number for numeric fields, ensure non-negative values
+    const numericValue = Math.max(0, parseInt(value, 10) || 0);
+    setFormValues((prev) => ({ ...prev, [name]: numericValue }));
+  };
+
+  return (
+    <div>
+      <div className="report-master-form">
+        <div className="tab-content">
+          <section className="contentWrapper" style={{ overflow: "hidden" }}>
+            <Loader show={loading} />
+            <Row
+              style={{
+                alignItems: "end",
+              }}
+              className="mt-2"
+            >
+              <Col xl={3} lg={3} md={3} sm={12} xs={12}>
+                <div
+                  className="mb-2 ml-1"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0px 10px",
+                  }}
+                >
+                  <p className="mb-0">Password Length</p>
+                  <span style={{ fontSize: "12px", fontWeight: "900", color: "#F00" }}>0 Means No Effect on the Value </span>
+                </div>
+                <TextBoxCompnonents
+                  name="minLength"
+                  id="minLength"
+                  type="number"
+                  cssClass="e-outline"
+                  placeholder={multiLingualString("Min")}
+                  value={formValues.minLength}
+                  onChange={handleChange}
+                  enabled={!loading}
+                  floatLabelType="Auto"
+                  min="1"
+                />
+              </Col>
+              <Col xl={3} lg={3} md={3} sm={6} xs={6}>
+                <TextBoxCompnonents
+                  name="maxLength"
+                  id="maxLength"
+                  type="number"
+                  cssClass="e-outline"
+                  placeholder={multiLingualString("Max")}
+                  value={formValues.maxLength}
+                  onChange={handleChange}
+                  enabled={!loading}
+                  floatLabelType="Auto"
+                  min="0"
+                />
+              </Col>
+              <Col xl={3} lg={3} md={3} sm={12} xs={12}>
+                <FilterCheckbox
+                  name={multiLingualString("Alphabets")}
+                  status={formValues.minChar}
+                  disabled={false}
+                  isEditable={!loading}
+                  onClick={() => handleCheckBox("minChar", formValues.minChar)}
+                  className="checkboxfilter"
+                  floatLabelType="Auto"
+                />
+              </Col>
+              <Col xl={3} lg={3} md={3} sm={12} xs={12}>
+                <FilterCheckbox
+                  name={multiLingualString("Numbers")}
+                  status={formValues.minNumber}
+                  disabled={false}
+                  isEditable={!loading}
+                  onClick={() => handleCheckBox("minNumber", formValues.minNumber)}
+                  className="checkboxfilter"
+                  floatLabelType="Auto"
+                />
+              </Col>
+              <Col xl={3} lg={3} md={3} sm={12} xs={12}>
+                <FilterCheckbox
+                  name={multiLingualString("Capital Character")}
+                  status={formValues.minCapitalChar}
+                  disabled={false}
+                  isEditable={!loading}
+                  onClick={() => handleCheckBox("minCapitalChar", formValues.minCapitalChar)}
+                  className="checkboxfilter"
+                  floatLabelType="Auto"
+                />
+              </Col>
+              <Col xl={3} lg={3} md={3} sm={12} xs={12}>
+                <FilterCheckbox
+                  name={multiLingualString("Small Character")}
+                  status={formValues.minSmallChar}
+                  disabled={false}
+                  isEditable={!loading}
+                  onClick={() => handleCheckBox("minSmallChar", formValues.minSmallChar)}
+                  className="checkboxfilter"
+                  floatLabelType="Auto"
+                />
+              </Col>
+              <Col xl={3} lg={3} md={3} sm={12} xs={12}>
+                <FilterCheckbox
+                  name={multiLingualString("Special Character")}
+                  status={formValues.minSpecialChar}
+                  disabled={false}
+                  isEditable={!loading}
+                  onClick={() => handleCheckBox("minSpecialChar", formValues.minSpecialChar)}
+                  className="checkboxfilter"
+                  floatLabelType="Auto"
+                />
+              </Col>
+              {/* <Col
+                xl={6}
+                lg={6}
+                md={6}
+                sm={12}
+                xs={12}
+                style={{
+                  margin: "0px !important",
+                  paddingTop: "5px",
+                  paddingBottom: "5px",
+                }}
+              >
+                <div className="description mb-2 ml-1">
+                  <p>Text Character</p>
+                </div>
+                <Row>
+                  <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+                    <TextBoxCompnonents
+                      name="minChar"
+                      id="minChar"
+                      type="number"
+                      cssClass="e-outline"
+                      placeholder={multiLingualString("Min")}
+                      value={formValues.minChar}
+                      onChange={handleChange}
+                      enabled={!loading}
+                      floatLabelType="Auto"
+                      min="0"
+                    />
+                  </Col>
+                  <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+                    <TextBoxCompnonents
+                      name="maxChar"
+                      id="maxChar"
+                      type="number"
+                      cssClass="e-outline"
+                      placeholder={multiLingualString("Max")}
+                      value={formValues.maxChar}
+                      onChange={handleChange}
+                      enabled={!loading}
+                      floatLabelType="Auto"
+                      min="0"
+                    />
+                  </Col>
+                </Row>
+              </Col>
+              <Col
+                xl={6}
+                lg={6}
+                md={6}
+                sm={12}
+                xs={12}
+                style={{
+                  margin: "0px !important",
+                  paddingTop: "5px",
+                  paddingBottom: "5px",
+                }}
+              >
+                <div className="description mb-2 ml-1">
+                  <p>Number</p>
+                </div>
+                <Row>
+                  <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+                    <TextBoxCompnonents
+                      name="minNumber"
+                      id="minNumber"
+                      type="number"
+                      cssClass="e-outline"
+                      placeholder={multiLingualString("Min")}
+                      value={formValues.minNumber}
+                      onChange={handleChange}
+                      enabled={!loading}
+                      floatLabelType="Auto"
+                      min="0"
+                    />
+                  </Col>
+                  <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+                    <TextBoxCompnonents
+                      name="maxNumber"
+                      id="maxNumber"
+                      type="number"
+                      cssClass="e-outline"
+                      placeholder={multiLingualString("Max")}
+                      value={formValues.maxNumber}
+                      onChange={handleChange}
+                      enabled={!loading}
+                      floatLabelType="Auto"
+                      min="0"
+                    />
+                  </Col>
+                </Row>
+              </Col>
+              <Col
+                xl={6}
+                lg={6}
+                md={6}
+                sm={12}
+                xs={12}
+                style={{
+                  margin: "0px !important",
+                  paddingTop: "5px",
+                  paddingBottom: "5px",
+                }}
+              >
+                <div className="description mb-2 ml-1">
+                  <p>Capital Character</p>
+                </div>
+                <Row>
+                  <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+                    <TextBoxCompnonents
+                      name="minCapitalChar"
+                      id="minCapitalChar"
+                      type="number"
+                      cssClass="e-outline"
+                      placeholder={multiLingualString("Min")}
+                      value={formValues.minCapitalChar}
+                      onChange={handleChange}
+                      enabled={!loading}
+                      floatLabelType="Auto"
+                      min="0"
+                    />
+                  </Col>
+                  <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+                    <TextBoxCompnonents
+                      name="maxCapitalChar"
+                      id="maxCapitalChar"
+                      type="number"
+                      cssClass="e-outline"
+                      placeholder={multiLingualString("Max")}
+                      value={formValues.maxCapitalChar}
+                      onChange={handleChange}
+                      enabled={!loading}
+                      floatLabelType="Auto"
+                      min="0"
+                    />
+                  </Col>
+                </Row>
+              </Col>
+              <Col
+                xl={6}
+                lg={6}
+                md={6}
+                sm={12}
+                xs={12}
+                style={{
+                  margin: "0px !important",
+                  paddingTop: "5px",
+                  paddingBottom: "5px",
+                }}
+              >
+                <div className="description mb-2 ml-1">
+                  <p>Small Character</p>
+                </div>
+                <Row>
+                  <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+                    <TextBoxCompnonents
+                      name="minSmallChar"
+                      id="minSmallChar"
+                      type="number"
+                      cssClass="e-outline"
+                      placeholder={multiLingualString("Min")}
+                      value={formValues.minSmallChar}
+                      onChange={handleChange}
+                      enabled={!loading}
+                      floatLabelType="Auto"
+                      min="0"
+                    />
+                  </Col>
+                  <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+                    <TextBoxCompnonents
+                      name="maxSmallChar"
+                      id="maxSmallChar"
+                      type="number"
+                      cssClass="e-outline"
+                      placeholder={multiLingualString("Max")}
+                      value={formValues.maxSmallChar}
+                      onChange={handleChange}
+                      enabled={!loading}
+                      floatLabelType="Auto"
+                      min="0"
+                    />
+                  </Col>
+                </Row>
+              </Col>
+              <Col
+                xl={6}
+                lg={6}
+                md={6}
+                sm={12}
+                xs={12}
+                style={{
+                  margin: "0px !important",
+                  paddingTop: "5px",
+                  paddingBottom: "5px",
+                }}
+              >
+                <div className="description mb-2 ml-1">
+                  <p>Special Character</p>
+                </div>
+                <Row>
+                  <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+                    <TextBoxCompnonents
+                      name="minSpecialChar"
+                      id="minSpecialChar"
+                      type="number"
+                      cssClass="e-outline"
+                      placeholder={multiLingualString("Min")}
+                      value={formValues.minSpecialChar}
+                      onChange={handleChange}
+                      enabled={!loading}
+                      floatLabelType="Auto"
+                      min="0"
+                    />
+                  </Col>
+                  <Col xl={6} lg={6} md={6} sm={6} xs={6}>
+                    <TextBoxCompnonents
+                      name="maxSpecialChar"
+                      id="maxSpecialChar"
+                      type="number"
+                      cssClass="e-outline"
+                      placeholder={multiLingualString("Max")}
+                      value={formValues.maxSpecialChar}
+                      onChange={handleChange}
+                      enabled={!loading}
+                      floatLabelType="Auto"
+                      min="0"
+                    />
+                  </Col>
+                </Row>
+              </Col> */}
+            </Row>
+            <div className="grid_submit_button_style">
+              <Button cssClass="e-info" handleClick={handleSubmit}>
+                <span className="button_font_style">{multiLingualString("Submit")}</span>
+              </Button>
+            </div>
+          </section>
+          <ResponsePopUp maxWidth={"xs"} open={responsePopUp.isOpen} onClose={() => setResponsePopUp({ ...responsePopUp, isOpen: false })} content={responsePopUp.content} type={responsePopUp.type} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PasswordConfiguration;
