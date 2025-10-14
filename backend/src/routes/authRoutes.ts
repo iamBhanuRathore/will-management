@@ -75,7 +75,7 @@ router.post("/verify", validate(verifySchema), async (req, res) => {
       message: "Logged in successfully.",
       data: {
         sessionToken,
-        userId: updatedUser.id,
+        userId: updatedUser.address,
         username: updatedUser.username,
         address: updatedUser.address,
       },

@@ -2,17 +2,15 @@ import { Router } from "express";
 import { prisma } from "../lib/db";
 import { protect } from "../middleware/auth";
 import { validate } from "../middleware/validate"; // Import our new Zod middleware
-import { createWillSchema, inheritWillSchema } from "../schema";
+import { createWillSchema, inheritWillSchema, nonceSchema } from "../schema";
 import type z from "zod";
 import secrets from "secrets.js-grempe"; // Shamir's Secret Sharing library
 import { PublicKey } from "@solana/web3.js";
-import { v4 as uuidv4 } from "uuid"; // For generating unique nonces
+import crypto from "crypto";
+import { Intent } from "@prisma/client";
+import { verifySolanaSignature } from "../lib/utils";
 
 const router = Router();
-// --- Database Mockup (In a real app, use a proper database like MongoDB, PostgreSQL) ---
-const userNonces = new Map(); // Stores { publicKey: nonce } for authentication
-const willsDatabase = new Map(); // Stores { willId: { ownerPublicKey, beneficiaryPublicKey, encryptedBeneficiaryShareBuffer, S1, S2 } }
-// Securely clear sensitive data
 const secureClear = (obj: any) => {
   if (typeof obj === "string") {
     return "0".repeat(obj.length);
@@ -33,47 +31,12 @@ const isValidSolanaPublicKey = (pubkey: string) => {
   }
 };
 // ====================================================================
-// 1. Endpoint for creating a will
-// ====================================================================
-router.post("/", protect, validate(createWillSchema), async (req, res) => {
-  // Thanks to Zod, we know req.body is fully validated and typed
-  const { willName, willDescription, beneficiaryName, beneficiaryAddress, timeLock, share1, share2 } = req.body as z.infer<typeof createWillSchema>["body"];
-
-  const creatorId = req.user!.id;
-
-  try {
-    const beneficiaryUser = await prisma.user.findUnique({ where: { address: beneficiaryAddress } });
-
-    const newWill = await prisma.will.create({
-      data: {
-        willName,
-        willDescription,
-        creatorId,
-        beneficiaryName,
-        beneficiaryAddress,
-        beneficiaryId: beneficiaryUser?.id || null,
-        timeLock: new Date(timeLock),
-        encryptedShare: {
-          create: { share1, share2 },
-        },
-      },
-      include: { encryptedShare: true },
-    });
-
-    res.status(201).json({ success: true, message: "Will created successfully.", data: newWill });
-  } catch (error) {
-    console.error("Error creating will:", error);
-    res.status(500).json({ success: false, message: "An internal server error occurred." });
-  }
-});
-
-// ====================================================================
 // 2. Endpoint for getting all the wills where I am a beneficiary
 // ====================================================================
 router.get("/beneficiary-of", protect, async (req, res) => {
   try {
     const wills = await prisma.will.findMany({
-      where: { beneficiaryId: req.user!.id },
+      where: { beneficiaryId: req.user!.address },
       select: {
         id: true,
         willName: true,
@@ -97,7 +60,7 @@ router.get("/beneficiary-of", protect, async (req, res) => {
 router.get("/my-wills", protect, async (req, res) => {
   try {
     const wills = await prisma.will.findMany({
-      where: { creatorId: req.user!.id },
+      where: { creatorId: req.user!.address },
       select: {
         id: true,
         willName: true,
@@ -169,87 +132,107 @@ router.get("/:willId/inherit", protect, validate(inheritWillSchema), async (req,
     res.status(500).json({ success: false, message: "An internal server error occurred." });
   }
 });
-router.post("/will/initiate-creation", async (req, res) => {
-  // In a real app, you'd verify the user's authentication token/signature here
-  // based on the nonce from /auth/nonce/:publicKey.
-  // For simplicity, we'll assume the client is authenticated.
+router.get("/creation-nonce", protect, async (req, res) => {
+  const userAddress = req.user!.address;
+  // const verificationResult = await verifySolanaSignature(address, signature, message);
 
+  try {
+    const nonce = crypto.randomBytes(32).toString("hex");
+    const nonceExpiry = new Date(Date.now() + 1000 * 60 * 2); // 2 mins from now
+    await prisma.actionNonce.create({
+      data: {
+        nonce,
+        expiresAt: nonceExpiry,
+        intent: Intent.CREATE_WILL,
+        userId: userAddress,
+      },
+    });
+
+    await prisma.user.update({
+      where: { address: userAddress },
+      data: { nonce },
+    });
+
+    res.status(200).json({ success: true, data: { nonce } });
+  } catch (error) {
+    console.error("Error during nonce generation:", error);
+    res.status(500).json({ success: false, message: "An internal server error occurred." });
+  }
+});
+router.post("/initiate-creation", protect, async (req, res) => {
   const {
-    ownerPublicKey, // The client's public key (added for clarity on server side)
+    userPublicKey,
     beneficiaryPublicKey,
     R2_hex, // Server's random value (generated on client for the server)
     U3, // User share #3
     U4, // User share #4
     B3, // Beneficiary share #3
     B4, // Beneficiary share #4
-    encryptedBeneficiaryShareBufferHex, // The fully encrypted share for the beneficiary
+    signedPayload,
+    message,
+    beneficiaryName = "",
+    willDescription = "",
+    willName = "",
   } = req.body;
 
   console.log("Received data for will creation:", {
-    ownerPublicKey,
+    userPublicKey,
     beneficiaryPublicKey,
     R2_hex: R2_hex ? R2_hex.substring(0, 10) + "..." : "N/A",
     U3: U3 ? U3.substring(0, 10) + "..." : "N/A",
     U4: U4 ? U4.substring(0, 10) + "..." : "N/A",
     B3: B3 ? B3.substring(0, 10) + "..." : "N/A",
     B4: B4 ? B4.substring(0, 10) + "..." : "N/A",
-    encryptedBeneficiaryShareBufferHex: encryptedBeneficiaryShareBufferHex ? encryptedBeneficiaryShareBufferHex.substring(0, 10) + "..." : "N/A",
   });
 
   // --- Input Validation ---
-  if (!ownerPublicKey || !beneficiaryPublicKey || !R2_hex || !U3 || !U4 || !B3 || !B4 || !encryptedBeneficiaryShareBufferHex) {
+  if (!userPublicKey || !beneficiaryPublicKey || !R2_hex || !U3 || !U4 || !B3 || !B4) {
     return res.status(400).json({ success: false, message: "Missing required fields for will creation." });
   }
-  if (!isValidSolanaPublicKey(ownerPublicKey) || !isValidSolanaPublicKey(beneficiaryPublicKey)) {
+  if (!isValidSolanaPublicKey(userPublicKey) || !isValidSolanaPublicKey(beneficiaryPublicKey)) {
     return res.status(400).json({ success: false, message: "Invalid Solana public key format." });
   }
 
   let S1 = null;
   let S2 = null;
   let serverShares: string[] = [];
-  let encryptedBeneficiaryShareBuffer = null;
 
   try {
-    // Convert the hex string of the encrypted buffer back to a Buffer
-    encryptedBeneficiaryShareBuffer = Buffer.from(encryptedBeneficiaryShareBufferHex, "hex");
-
-    // SERVER'S ROLE IN SHAMIR'S SECRET SHARING:
-    // The server takes R2_hex (which was generated by the client *for* the server)
-    // and splits it into its own shares (S1, S2, S3, S4).
-    // It then combines U3, B3, S3 to get a server-computed recovery piece,
-    // and U4, B4, S4 for another. These are NOT the final S1/S2 returned to client.
-
-    // This `apiCall` logic from your client needs to be integrated here.
-    // It's the server's local calculation to produce the S1 and S2 it returns to the client.
-
-    // Re-calculate shares from R2_hex on the server
+    await verifySolanaSignature(userPublicKey, signedPayload, message);
     serverShares = secrets.share(R2_hex, 4, 3);
     const [serverS1, serverS2, serverS3, serverS4] = serverShares;
 
-    // The S1 and S2 that the server *returns* to the client are derived from these.
-    // These are the *specific* shares of the server's R2_hex that will be sent back
-    // to the client to combine with U1, B1 (for S1) and U2, B2 (for S2).
     S1 = serverS1; // Server's share of R2_hex that goes to client for finalUserShare
     S2 = serverS2; // Server's share of R2_hex that goes to client for finalBeneficiaryShare
 
-    // Store the will data securely
-    const willId = uuidv4(); // Generate a unique ID for this will
-    willsDatabase.set(willId, {
-      ownerPublicKey,
-      beneficiaryPublicKey,
-      encryptedBeneficiaryShareBuffer: encryptedBeneficiaryShareBuffer, // Store the encrypted buffer
-      serverShareForUser: S1, // Server's part for user's final share
-      serverShareForBeneficiary: S2, // Server's part for beneficiary's final share
-      // The server does NOT store U3, U4, B3, B4, S3, S4 long-term; they are for calculation.
+    const tenMinuteFromNow = new Date(); // Need to come from the client
+    tenMinuteFromNow.setTime(tenMinuteFromNow.getTime() + 1000 * 60 * 10);
+    const will = await prisma.will.create({
+      data: {
+        beneficiaryAddress: beneficiaryPublicKey,
+        beneficiaryName: beneficiaryName, // Can Be anything
+        timeLock: tenMinuteFromNow,
+        willDescription: willDescription, // Can be anything according to the user
+        willName: willName, // Can be anything acc to user
+        encryptedShare: {
+          create: {
+            share1: S1!,
+            share2: S2!,
+          },
+        },
+        creator: {
+          connect: {
+            address: req.user?.address,
+          },
+        },
+      },
     });
-
-    console.log(`Will ${willId} created and stored successfully.`);
-    console.log("Stored data for will:", willsDatabase.get(willId));
+    console.log(`Will ${will.id} created and stored successfully.`);
 
     res.status(200).json({
       success: true,
       message: "Will creation initiated successfully.",
-      willId,
+      willId: will.id,
       S1, // These are the calculated server shares (of R2_hex) for the client
       S2, // to combine with their respective user and beneficiary shares.
     });
@@ -264,5 +247,27 @@ router.post("/will/initiate-creation", async (req, res) => {
     // But if copied to local variables, they should be cleared.
   }
 });
-
+router.post("/submit-creation", protect, async (req, res) => {
+  const { encryptedBeneficiaryShare, encryptedUserShare, signedPayload, message, willId } = req.body;
+  await verifySolanaSignature(req.user?.address!, signedPayload, message);
+  const will = await prisma.will.update({
+    where: {
+      id: willId,
+    },
+    data: {
+      encryptedShare: {
+        update: {
+          data: {
+            encryptedUserShare,
+            encryptedBeneficiaryShare,
+          },
+        },
+      },
+    },
+  });
+  res.status(200).json({
+    status: true,
+    data: will,
+  });
+});
 export default router;

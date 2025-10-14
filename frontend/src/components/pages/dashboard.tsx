@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import apiClient from "@/lib/api";
 
@@ -7,6 +7,7 @@ import nacl from "tweetnacl"; // Cryptographic library for encryption
 import { PublicKey } from "@solana/web3.js"; // Solana blockchain utilities
 import { createEncodedMessage } from "@/lib/utils";
 import { AUTHENTICATE_MESSAGE } from "@/lib/constant";
+import bs58 from "bs58";
 
 // --- Security-Hardened Helper Functions ---
 
@@ -210,49 +211,47 @@ const decryptFromBeneficiary = (encryptedBuffer: Buffer, recipientPrivateKey: Ui
   }
 };
 
-// --- MAIN REACT COMPONENT ---
 const Dashboard = () => {
-  // WALLET CONNECTION: Get wallet connection state and functions
   const { connected, publicKey, signIn, signMessage } = useWallet();
 
-  // COMPONENT STATE: Manage form inputs and creation state
-  const [secret, setSecret] = useState(""); // The secret to be protected (seed phrase, etc.)
-  const [beneficiaryPublicKey, setBeneficiaryPublicKey] = useState(""); // Who gets access after conditions are met
-  const [userFinalShare, setUserFinalShare] = useState<string | null>(null); // User's recovery share
-  const [isCreating, setIsCreating] = useState(false); // Loading state during will creation
-  const [creationSuccess, setCreationSuccess] = useState(false); // Success state
-
-  // AUTHENTICATION: Handle wallet authentication when user connects
+  const [secret, setSecret] = useState("This is my Static Secret");
+  const [beneficiaryPublicKey, setBeneficiaryPublicKey] = useState("6XCVkH9GbxjNTpjwvWXFEHteMsyak3VKFTc5sQc2udHX");
+  const [userFinalShare, setUserFinalShare] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [creationSuccess, setCreationSuccess] = useState(false);
+  const authAttempted = useRef(false);
   useEffect(() => {
     async function authenticate() {
-      // Only proceed if wallet is connected and we have necessay functions
-      if (!connected || !publicKey || !signIn || !signMessage) return;
-
+      if (!publicKey || !signMessage) return;
       try {
+        console.log("Attempting authentication...");
         const res = await apiClient.get(`auth/nonce/${publicKey.toBase58()}`);
         const { nonce } = res.data.data;
-        const encodedMessage = createEncodedMessage(AUTHENTICATE_MESSAGE, nonce);
+        const { encodedMessage, message } = createEncodedMessage(AUTHENTICATE_MESSAGE, nonce);
         const signedPayload = await signMessage(encodedMessage);
 
-        console.log("Authentication successful");
+        const payload = {
+          address: publicKey.toBase58(),
+          message: message,
+          signature: bs58.encode(signedPayload),
+        };
+
+        const response = await apiClient.post(`auth/verify`, payload);
+        localStorage.setItem("authToken", response.data.data.sessionToken);
+        console.log("Authentication successful", response.data);
       } catch (error) {
         console.error("Authentication failed:", error);
       }
     }
 
-    // Run authentication when wallet connects
-    if (publicKey) {
-      // authenticate();
+    if (connected && publicKey && signIn && signMessage && !authAttempted.current) {
+      authAttempted.current = true;
+      authenticate();
     }
-  }, [publicKey, connected, signIn, signMessage]);
+  }, [publicKey, connected, signIn, signMessage]); // Dependencies remain to trigger the effect when the wallet connects
 
-  /**
-   * MAIN PROTOCOL: Multi-Party Computation (MPC) Will Creation
-   * This is the core of the digital will creation process using cryptographic shares
-   */
   const handleCreateWill = useCallback(async () => {
-    // === INPUT VALIDATION PHASE ===
-    if (!publicKey || !secret.trim() || !beneficiaryPublicKey.trim()) {
+    if (!publicKey || !secret.trim() || !beneficiaryPublicKey.trim() || !signMessage) {
       alert("Please connect your wallet and fill in all fields.");
       return;
     }
@@ -267,7 +266,6 @@ const Dashboard = () => {
       return;
     }
     console.time("Start");
-    // === INITIALIZATION PHASE ===
     setIsCreating(true);
     setUserFinalShare(null);
     setCreationSuccess(false);
@@ -280,7 +278,12 @@ const Dashboard = () => {
 
     try {
       // === PHASE 1: SECRET PREPARATION ===
-      console.log("Phase 1: Converting secret to hex format...");
+      const res = await apiClient.get(`will/creation-nonce`);
+      const { nonce } = res.data.data;
+      const { encodedMessage, message } = createEncodedMessage(AUTHENTICATE_MESSAGE, nonce);
+      const signedPayload = await signMessage(encodedMessage);
+
+      console.log("Phase 1: Converting secret to hex format... signedPayload", signedPayload.toString());
       secretHex = secrets.str2hex(secret); // Convert string to hex for cryptographic operations
       console.log(secretHex);
       const bits = secretHex.length * 4; // Calculate bits needed (each hex char = 4 bits)
@@ -331,12 +334,14 @@ const Dashboard = () => {
         U4, // User share #4 (for server to combine)
         B3, // Beneficiary share #3 (for server to combine)
         B4, // Beneficiary share #4 (for server to combine)
+        signedPayload: bs58.encode(signedPayload),
+        message,
       };
       console.log(payload);
       // Server processes these and returns its combined shares
-      const { S1, S2 } = apiCall(payload);
-      // const response = await apiClient.post("/will/initiate-creation", payload);
-      // const { S1, S2 } = response.data; // Server returns combined shares
+      // const { S1, S2 } = apiCall(payload);
+      const response = await apiClient.post("/will/initiate-creation", payload);
+      const { S1, S2, willId } = response.data; // Server returns combined shares
 
       console.log("Server coordination completed");
 
@@ -363,6 +368,15 @@ const Dashboard = () => {
       console.log("User Key,Beneficiary Key", finalUserShareHex, finalBeneficiaryShareHex);
       console.log("Beneficiary share encrypted", encryptedBeneficiaryShare);
       console.log("User share encrypted", encryptedUserShare);
+      const submitPayload = {
+        encryptedBeneficiaryShare: bs58.encode(encryptedBeneficiaryShare),
+        encryptedUserShare: bs58.encode(encryptedUserShare),
+        signedPayload: bs58.encode(signedPayload),
+        message,
+        willId,
+      };
+      const data = await apiClient.post("/will/submit-creation", submitPayload);
+      console.log(data);
       // another api call to store the beneficiary encyrpted share
       // === PHASE 8: SECURE STORAGE ===
       // SECURITY: Only store user's share locally, never beneficiary's plaintext share
@@ -390,13 +404,13 @@ const Dashboard = () => {
   }, [publicKey, secret, beneficiaryPublicKey]);
 
   // SECURITY CLEANUP: Clear secret from state when component unmounts
-  useEffect(() => {
-    return () => {
-      if (secret) {
-        setSecret(""); // Clear secret when component is destroyed
-      }
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     if (secret) {
+  //       setSecret(""); // Clear secret when component is destroyed
+  //     }
+  //   };
+  // }, []);
 
   // === USER INTERFACE RENDERING ===
   return (

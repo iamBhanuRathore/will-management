@@ -26,7 +26,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     }
 
     // Attach user to the request object
-    req.user = { id: user.id, address: user.address };
+    req.user = { address: user.address };
     next();
   } catch (error) {
     console.error(error);

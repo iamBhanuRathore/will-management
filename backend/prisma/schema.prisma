@@ -10,8 +10,7 @@ datasource db {
 // User model: Represents any user with an account in the system.
 // A user can be a will creator, a beneficiary, or both.
 model User {
-  id                 String    @id @default(cuid())
-  address            String    @unique // The user's public wallet address (e.g., 0x...).
+  address            String    @id @unique // The user's public wallet address (e.g., 0x...).
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   // An optional, unique, human-readable name for the user.
@@ -23,7 +22,28 @@ model User {
   sessionTokenExpiry DateTime?
 
   // Wills where this user is the designated beneficiary.
-  beneficiaryOfWills Will[] @relation("WillBeneficiary")
+  beneficiaryOfWills Will[]        @relation("WillBeneficiary")
+  ActionNonce        ActionNonce[]
+}
+
+enum Intent {
+  CREATE_WILL
+  REVOKE_WILL
+  UPDATE_BENEFICIARY
+}
+
+model ActionNonce {
+  id        String   @id @default(cuid())
+  nonce     String   @unique
+  intent    Intent // What is this nonce for? e.g., 'CREATE_WILL'
+  expiresAt DateTime // All nonces MUST expire.
+
+  userId String
+  user   User   @relation(fields: [userId], references: [address], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // Will model: Stores the non-sensitive metadata for a will.
@@ -35,7 +55,7 @@ model Will {
 
   // 1. The Creator (Required relationship to a User)
   creatorId String
-  creator   User   @relation("WillCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  creator   User   @relation("WillCreator", fields: [creatorId], references: [address], onDelete: Cascade)
 
   // 2. The Beneficiary
   // The on-chain address of the beneficiary. This is always the source of truth.
@@ -45,7 +65,7 @@ model Will {
   // An optional link to a registered User account if the beneficiary has one.
   // This allows us to show a user the wills they are set to inherit.
   beneficiaryId String?
-  beneficiary   User?   @relation("WillBeneficiary", fields: [beneficiaryId], references: [id], onDelete: SetNull)
+  beneficiary   User?   @relation("WillBeneficiary", fields: [beneficiaryId], references: [address], onDelete: SetNull)
 
   // --- On-Chain State Mirror ---
   timeLock  DateTime
@@ -70,10 +90,12 @@ model Will {
 
 // EncryptedShare model: Stores the sensitive encrypted data.
 model EncryptedShare {
-  id     String @id @default(cuid())
-  share1 String
-  share2 String
+  id                        String  @id @default(cuid())
+  share1                    String
+  share2                    String
+  encryptedUserShare        String?
+  encryptedBeneficiaryShare String?
   // One-to-one relationship with Will.
-  willId String @unique
-  will   Will   @relation(fields: [willId], references: [id], onDelete: Cascade)
+  willId                    String  @unique
+  will                      Will    @relation(fields: [willId], references: [id], onDelete: Cascade)
 }

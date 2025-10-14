@@ -22,7 +22,6 @@ export const inheritWillSchema = z.object({
 // Schema for requesting a nonce
 export const nonceSchema = z.object({
   params: z.object({
-    // address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format."),
     address: z.string().refine((val) => {
       try {
         new PublicKey(val);
@@ -37,10 +36,15 @@ export const nonceSchema = z.object({
 // Schema for the 'verify' (login) request
 export const verifySchema = z.object({
   body: z.object({
-    address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format."),
-    // The EIP-4361 message that was signed.
+    address: z.string().refine((val) => {
+      try {
+        new PublicKey(val);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }, "Invalid Solana address."),
     message: z.string().min(1, "Message cannot be empty."),
-    // The signature from the user's wallet.
-    signature: z.string().regex(/^0x[a-fA-F0-9]{130}$/, "Invalid signature format."),
+    signature: z.string().min(1, "Signature cannot be empty."),
   }),
 });
