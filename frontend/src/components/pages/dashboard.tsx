@@ -74,12 +74,7 @@ const Dashboard = () => {
             {publicKey ? (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Your wallet address:</p>
-                <a
-                  href={`https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=devnet`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline break-all"
-                >
+                <a href={`https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=devnet`} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all">
                   {publicKey.toBase58()}
                 </a>
               </div>
@@ -104,11 +99,7 @@ const Dashboard = () => {
           ) : myWills.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">You haven't created any wills yet.</p>
-              <CreateWillModal>
-                <Button variant="link" className="mt-2">
-                  Create a Will
-                </Button>
-              </CreateWillModal>
+              <CreateWillModal />
             </div>
           ) : (
             <Table>
@@ -164,10 +155,7 @@ const Dashboard = () => {
                     <TableCell>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button
-                            onClick={() => handleInherit(will.id)}
-                            disabled={will.isClaimed || will.isRevoked || new Date() < new Date(will.timeLock)}
-                          >
+                          <Button onClick={() => handleInherit(will.id)} disabled={will.isClaimed || will.isRevoked || new Date() < new Date(will.timeLock)}>
                             Claim
                           </Button>
                         </DialogTrigger>
@@ -175,26 +163,15 @@ const Dashboard = () => {
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>Inheritance Claimed</DialogTitle>
-                              <DialogDescription>
-                                Here is the secret share from the platform. Keep it safe.
-                              </DialogDescription>
+                              <DialogDescription>Here is the secret share from the platform. Keep it safe.</DialogDescription>
                             </DialogHeader>
                             <div className="mt-4 space-y-4">
                               <div className="bg-muted p-4 rounded-md relative">
                                 <pre className="break-all text-sm">
                                   <code>{JSON.stringify(claimedShare, null, 2)}</code>
                                 </pre>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="absolute top-2 right-2 h-8 w-8"
-                                  onClick={() => handleCopy(JSON.stringify(claimedShare, null, 2))}
-                                >
-                                  {isCopied ? (
-                                    <Check className="h-4 w-4 text-green-500" />
-                                  ) : (
-                                    <Copy className="h-4 w-4" />
-                                  )}
+                                <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-8 w-8" onClick={() => handleCopy(JSON.stringify(claimedShare, null, 2))}>
+                                  {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                 </Button>
                               </div>
                             </div>
