@@ -46,10 +46,10 @@ router.get("/nonce/:address", validate(nonceSchema), async (req, res) => {
 // 2. Endpoint for user login verification
 // ====================================================================
 router.post("/verify", validate(verifySchema), async (req, res) => {
-  const { address, message, signature } = req.body as z.infer<typeof verifySchema>["body"];
+  const { publicKey, message, signature } = req.body as z.infer<typeof verifySchema>["body"];
 
   // --- Step 1: Call the reusable verification function ---
-  const verificationResult = await verifySolanaSignature(address, signature, message);
+  const verificationResult = await verifySolanaSignature(publicKey, signature, message);
 
   if (!verificationResult.success) {
     // If verification fails, send the detailed error and status from the function
@@ -66,7 +66,7 @@ router.post("/verify", validate(verifySchema), async (req, res) => {
     const sessionTokenExpiry = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7 days
 
     const updatedUser = await prisma.user.update({
-      where: { address },
+      where: { address: publicKey },
       data: { nonce: null, sessionToken, sessionTokenExpiry },
     });
 

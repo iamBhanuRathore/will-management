@@ -36,7 +36,7 @@ export const nonceSchema = z.object({
 // Schema for the 'verify' (login) request
 export const verifySchema = z.object({
   body: z.object({
-    address: z.string().refine((val) => {
+    publicKey: z.string().refine((val) => {
       try {
         new PublicKey(val);
         return true;
