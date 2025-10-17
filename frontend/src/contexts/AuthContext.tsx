@@ -2,12 +2,11 @@ import apiClient from "@/lib/api";
 import { AUTHENTICATE_MESSAGE } from "@/lib/constant";
 import { createEncodedMessage } from "@/lib/utils";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react";
 import bs58 from "bs58";
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: () => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -17,20 +16,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { publicKey, signMessage } = useWallet();
+  const { publicKey, signMessage, disconnect } = useWallet();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
-  }, []);
-
-  const login = async () => {
+  const login = useCallback(async () => {
     if (!publicKey || !signMessage) {
-      console.error("Wallet not connected");
       return;
     }
 
@@ -55,15 +44,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Login failed", error);
       logout();
     }
-  };
+  }, [publicKey, signMessage]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      setIsAuthenticated(true);
+    } else if (publicKey) {
+      login();
+    }
+    setLoading(false);
+  }, [publicKey, login]);
 
   const logout = () => {
     localStorage.removeItem("token");
     delete apiClient.defaults.headers.common["Authorization"];
     setIsAuthenticated(false);
+    disconnect();
   };
 
-  return <AuthContext.Provider value={{ isAuthenticated, login, logout, loading }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ isAuthenticated, logout, loading }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
