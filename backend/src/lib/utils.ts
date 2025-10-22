@@ -2,6 +2,7 @@ import type { User } from "@prisma/client";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 import { prisma } from "./db";
+import { PublicKey } from "@solana/web3.js";
 
 // Define a consistent structure for the function's return value
 type VerificationResult = { success: true; user: User } | { success: false; message: string; status: 400 | 401 | 403 | 404 };
@@ -74,5 +75,50 @@ export const verifySolanaSignature = async (address: string, signature: string, 
       message: "Invalid signature, address, or message format.",
       status: 400,
     };
+  }
+};
+
+export const xorHexStrings = (hex1: string, hex2: string): string => {
+  console.log(`XOR Debug: hex1 length=${hex1.length}, hex2 length=${hex2.length}, hex1=${hex1}, hex2=${hex2}`);
+
+  if (hex1.length !== hex2.length) {
+    console.error("Length mismatch after normalization:", hex1.length, hex2.length);
+    throw new Error(`Hex strings still have different lengths after normalization: ${hex1.length} vs ${hex2.length}`);
+  }
+  let result = "";
+  for (let i = 0; i < hex1.length; i++) {
+    const byte1 = parseInt(hex1.charAt(i), 16); // Convert hex pair to number
+    const byte2 = parseInt(hex2.charAt(i), 16); // Convert hex pair to number
+    const xorByte = byte1 ^ byte2; // XOR the two bytes
+    result += xorByte.toString(16).toUpperCase();
+  }
+  // Process hex string 2 characters at a time (each pair represents 1 byte)
+  //  for (let i = 0; i < hex1.length; i += 2) { // ✅ Increment by 2
+  //   const byte1 = parseInt(hex1.substr(i, 2), 16); // ✅ Process 2 chars (1 byte)
+  //   const byte2 = parseInt(hex2.substr(i, 2), 16); // ✅ Process 2 chars (1 byte)
+  //   const xorByte = byte1 ^ byte2; // XOR the two bytes
+  //   result += xorByte.toString(16).padStart(2, "0"); // ✅ Always 2 digits
+  // }
+  console.log("this works", result.length);
+  return result;
+};
+
+export const secureClear = (obj: any) => {
+  if (typeof obj === "string") {
+    return "0".repeat(obj.length);
+  }
+  if (obj instanceof Uint8Array || obj instanceof Buffer) {
+    obj.fill(0);
+  }
+  return null;
+};
+
+// Input Validation: Check if a string is a valid Solana public key
+export const isValidSolanaPublicKey = (pubkey: string) => {
+  try {
+    new PublicKey(pubkey);
+    return true;
+  } catch {
+    return false;
   }
 };

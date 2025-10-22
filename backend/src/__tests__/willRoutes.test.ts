@@ -7,7 +7,7 @@ import { prisma } from "../lib/db";
 jest.mock("../middleware/auth", () => ({
   protect: (req: Request, res: Response, next: NextFunction) => {
     if (req.headers["x-user-id"]) {
-      req.user = { id: req.headers["x-user-id"] as string, address: `0x${req.headers["x-user-id"]}` };
+      req.user = { address: `0x${req.headers["x-user-id"]}` };
     }
     next();
   },
@@ -24,7 +24,6 @@ describe("Will Routes", () => {
       const newWill = {
         willName: "My Test Will",
         willDescription: "A will for testing purposes.",
-        beneficiaryName: "Test Beneficiary",
         beneficiaryAddress: "0x789",
         timeLock: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
         share: "my-secret-share",
@@ -41,7 +40,6 @@ describe("Will Routes", () => {
       const invalidWill = {
         willName: "", // Invalid
         willDescription: "A will for testing purposes.",
-        beneficiaryName: "Test Beneficiary",
         beneficiaryAddress: "0x789",
         timeLock: new Date().toISOString(),
         share: "my-secret-share",
@@ -100,17 +98,17 @@ describe("Will Routes", () => {
     });
 
     it("should return a 400 error if the will is revoked", async () => {
-      await prisma.will.update({ where: { id: "test-will-1" }, data: { isRevoked: true } });
+      await prisma.will.update({ where: { id: "test-will-1" }, data: { status: "ACTIVE" } });
       const res = await request(app).get("/api/will/test-will-1/inherit").set("x-user-id", "test-user-2");
       expect(res.status).toBe(400);
-      await prisma.will.update({ where: { id: "test-will-1" }, data: { isRevoked: false } }); // Reset
+      await prisma.will.update({ where: { id: "test-will-1" }, data: { status: "ACTIVE" } }); // Reset
     });
 
     it("should return a 400 error if the will is already claimed", async () => {
-      await prisma.will.update({ where: { id: "test-will-1" }, data: { isClaimed: true } });
+      await prisma.will.update({ where: { id: "test-will-1" }, data: { status: "ACTIVE" } });
       const res = await request(app).get("/api/will/test-will-1/inherit").set("x-user-id", "test-user-2");
       expect(res.status).toBe(400);
-      await prisma.will.update({ where: { id: "test-will-1" }, data: { isClaimed: false } }); // Reset
+      await prisma.will.update({ where: { id: "test-will-1" }, data: { status: "ACTIVE" } }); // Reset
     });
 
     it("should return a 400 error if the time lock has not expired", async () => {

@@ -2,8 +2,9 @@ import { createContext, useContext, useState, type ReactNode, useCallback } from
 import apiClient from "@/lib/api";
 import secrets from "secrets.js-grempe";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { createEncodedMessage } from "@/lib/utils";
-
+import { createEncodedMessage, encryptWithPublicKey, generateSecureRandomHex, xorHexStrings } from "@/lib/utils";
+import { AUTHENTICATE_MESSAGE } from "@/lib/constant";
+import bs58 from "bs58";
 interface WillContextType {
   myWills: any[];
   beneficiaryWills: any[];
@@ -24,10 +25,7 @@ export const WillProvider = ({ children }: { children: ReactNode }) => {
   const fetchWills = useCallback(async () => {
     setLoading(true);
     try {
-      const [myWillsRes, beneficiaryWillsRes] = await Promise.all([
-        apiClient.get("/api/will/my-wills"),
-        apiClient.get("/api/will/beneficiary-of"),
-      ]);
+      const [myWillsRes, beneficiaryWillsRes] = await Promise.all([apiClient.get("/api/will/my-wills"), apiClient.get("/api/will/beneficiary-of")]);
       setMyWills(myWillsRes.data.data);
       setBeneficiaryWills(beneficiaryWillsRes.data.data);
     } catch (error) {
@@ -51,24 +49,28 @@ export const WillProvider = ({ children }: { children: ReactNode }) => {
     if (!publicKey || !signMessage) throw new Error("Wallet not connected");
 
     // 1. Generate the main secret and split it into shares
-    const secret = secrets.random(512); // 512-bit secret
-    const shares = secrets.share(secret, 4, 3); // 4 shares, 3 required
-    const [U1, U2, U3, U4] = shares; // User's shares
+    const secretHex = secrets.str2hex(willData.secret);
+    const bits = secretHex.length * 4;
 
-    // 2. Generate another set of shares for the beneficiary
-    const beneficiarySecret = secrets.random(512);
-    const beneficiaryShares = secrets.share(beneficiarySecret, 4, 3);
-    const [B1, B2, B3, B4] = beneficiaryShares;
+    // CRYPTOGRAPHIC MASKING: Create masked secret using XOR
+    // Formula: MaskedSecret = Secret ⊕ BeneficiaryRandom ⊕ ServerRandom
 
-    // 3. Generate a random value for the server
-    const R2_hex = secrets.random(512);
+    const R1_hex = generateSecureRandomHex(bits); // Beneficiary's random value
+    const R2_hex = generateSecureRandomHex(bits); // Server's random value
+    const P1_hex = xorHexStrings(xorHexStrings(secretHex, R1_hex), R2_hex);
+
+    let userShares = secrets.share(P1_hex, 4, 3); // Split user's masked secret
+    let beneficiaryShares = secrets.share(R1_hex, 4, 3); // Split beneficiary's random value
+
+    const [U1, U2, U3, U4] = userShares; // User shares: U1, U2, U3, U4
+    const [B1, B2, B3, B4] = beneficiaryShares; // Beneficiary shares: B1, B2, B3, B4
 
     // 4. Get a creation nonce
     const nonceRes = await apiClient.get("/api/will/creation-nonce");
     const { nonce } = nonceRes.data.data;
 
     // 5. Sign the payload
-    const { encodedMessage, message } = createEncodedMessage("Create Will", nonce);
+    const { encodedMessage, message } = createEncodedMessage(AUTHENTICATE_MESSAGE, nonce);
     const signature = await signMessage(encodedMessage);
 
     // 6. Initiate will creation
@@ -81,22 +83,28 @@ export const WillProvider = ({ children }: { children: ReactNode }) => {
       U4,
       B3,
       B4,
-      signedPayload: Buffer.from(signature).toString("base64"),
+      signedPayload: bs58.encode(signature),
       message,
+      willDescription: willData.willDescription,
+      willName: willData.willName,
+      timeLock: willData.timeLock,
     });
 
-    const { willId, S1, S2 } = initiateRes.data;
+    const { willId, S1, S2 } = initiateRes.data.data;
 
-    // 7. Combine shares to create final encrypted shares
-    const finalUserShare = secrets.combine([U1, B1, S1]);
-    const finalBeneficiaryShare = secrets.combine([U2, B2, S2]);
+    // Beneficiary's Final Share = U2 ⊕ B2 ⊕ S2
+    // This combines: UserShare + BeneficiaryShare + ServerShare
 
+    const finalUserShareHex = xorHexStrings(xorHexStrings(U1, B1), S1);
+    const finalBeneficiaryShareHex = xorHexStrings(xorHexStrings(U2, B2), S2);
+    const encryptedBeneficiaryShare = encryptWithPublicKey(finalBeneficiaryShareHex, willData.beneficiaryAddress);
+    const encryptedUserShare = encryptWithPublicKey(finalUserShareHex, publicKey.toString());
     // 8. Submit the final shares
     await apiClient.post("/api/will/submit-creation", {
       willId,
-      encryptedUserShare: finalUserShare,
-      encryptedBeneficiaryShare: finalBeneficiaryShare,
-      signedPayload: Buffer.from(signature).toString("base64"),
+      encryptedUserShare: bs58.encode(encryptedUserShare),
+      encryptedBeneficiaryShare: bs58.encode(encryptedBeneficiaryShare),
+      signedPayload: bs58.encode(signature),
       message,
     });
 
@@ -104,11 +112,7 @@ export const WillProvider = ({ children }: { children: ReactNode }) => {
     fetchWills();
   };
 
-  return (
-    <WillContext.Provider value={{ myWills, beneficiaryWills, loading, fetchWills, inheritWill, createWill }}>
-      {children}
-    </WillContext.Provider>
-  );
+  return <WillContext.Provider value={{ myWills, beneficiaryWills, loading, fetchWills, inheritWill, createWill }}>{children}</WillContext.Provider>;
 };
 
 export const useWill = () => {

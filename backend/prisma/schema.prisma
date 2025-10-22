@@ -24,6 +24,8 @@ model User {
   // Wills where this user is the designated beneficiary.
   beneficiaryOfWills Will[]        @relation("WillBeneficiary")
   ActionNonce        ActionNonce[]
+
+  @@index([sessionToken])
 }
 
 enum Intent {
@@ -46,6 +48,14 @@ model ActionNonce {
   @@index([userId])
 }
 
+enum WillStatus {
+  INITIALIZED
+  ACTIVE
+  REVOKED
+  CLAIMED
+  EXPIRED // Could be useful if `timeLock` passes without claim/revocation
+}
+
 // Will model: Stores the non-sensitive metadata for a will.
 model Will {
   id              String @id @default(cuid())
@@ -53,24 +63,13 @@ model Will {
   willDescription String
   // --- Parties Involved ---
 
-  // 1. The Creator (Required relationship to a User)
-  creatorId String
-  creator   User   @relation("WillCreator", fields: [creatorId], references: [address], onDelete: Cascade)
-
-  // 2. The Beneficiary
-  // The on-chain address of the beneficiary. This is always the source of truth.
-  beneficiaryName    String
+  creatorAddress     String
+  creator            User   @relation("WillCreator", fields: [creatorAddress], references: [address])
   beneficiaryAddress String
+  beneficiary        User?  @relation("WillBeneficiary", fields: [beneficiaryAddress], references: [address])
 
-  // An optional link to a registered User account if the beneficiary has one.
-  // This allows us to show a user the wills they are set to inherit.
-  beneficiaryId String?
-  beneficiary   User?   @relation("WillBeneficiary", fields: [beneficiaryId], references: [address], onDelete: SetNull)
-
-  // --- On-Chain State Mirror ---
-  timeLock  DateTime
-  isRevoked Boolean  @default(false)
-  isClaimed Boolean  @default(false)
+  timeLock DateTime
+  status   WillStatus @default(INITIALIZED)
 
   // --- Timestamps ---
   createdAt DateTime @default(now())
@@ -81,11 +80,9 @@ model Will {
 
   // --- Indexes for Performance ---
   // Index for finding all wills created by a user.
-  @@index([creatorId])
+  @@index([creatorAddress])
   // Index for finding a will by the beneficiary's wallet address (critical).
   @@index([beneficiaryAddress])
-  // Index for finding all wills where a registered user is the beneficiary.
-  @@index([beneficiaryId])
 }
 
 // EncryptedShare model: Stores the sensitive encrypted data.
