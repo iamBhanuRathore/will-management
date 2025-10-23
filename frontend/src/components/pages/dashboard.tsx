@@ -10,13 +10,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import useCopyToClipboard from "@/hooks/use-copy-to-clipboard";
 import { Check, Copy } from "lucide-react";
-
+import { format } from "date-fns";
+import { decryptWithPrivateKey, encryptMessage } from "@/lib/utils";
+import bs58 from "bs58";
+import { MY_PRIVATE_KEY } from "@/lib/constant";
+import { Keypair } from "@solana/web3.js";
 const Dashboard = () => {
   const { myWills, beneficiaryWills, loading, fetchWills, inheritWill } = useWill();
-  const { publicKey } = useWallet();
+  const { publicKey, wallet } = useWallet();
   const [claimedShare, setClaimedShare] = useState<any>(null);
   const { copy, isCopied } = useCopyToClipboard();
-
   useEffect(() => {
     if (publicKey) {
       fetchWills();
@@ -25,7 +28,7 @@ const Dashboard = () => {
 
   const handleInherit = async (willId: string) => {
     try {
-      const data = await inheritWill(willId);
+      const data = await inheritWill(willId); // data is now { decryptedShare, platformShares }
       setClaimedShare(data);
     } catch (error) {
       // Error is already logged in context
@@ -55,7 +58,32 @@ const Dashboard = () => {
       <Skeleton className="h-8 w-full" />
     </div>
   );
-  console.log(beneficiaryWills);
+  useEffect(() => {
+    if (!publicKey) return;
+    (async () => {
+      try {
+        const message = "Hello, Solana!";
+
+        // Get YOUR public key from YOUR private key
+        const myKeypair = Keypair.fromSecretKey(bs58.decode(MY_PRIVATE_KEY));
+        const myPublicKey = myKeypair.publicKey.toBase58();
+
+        console.log("🔑 My Public Key (from private key):", myPublicKey);
+        console.log("🔑 Wallet Public Key:", publicKey.toBase58());
+        console.log("🔑 Are they the same?", myPublicKey === publicKey.toBase58());
+
+        // Encrypt TO yourself (using your public key from private key)
+        const encrypted = encryptMessage(message, myPublicKey);
+        console.log("Encrypted:", bs58.encode(encrypted));
+
+        // Decrypt with your private key
+        const decrypted = await decryptWithPrivateKey(encrypted, MY_PRIVATE_KEY);
+        console.log("✅ Decrypted:", decrypted);
+      } catch (error) {
+        console.error("❌ Error:", error);
+      }
+    })();
+  }, [publicKey]);
   return (
     <div className="container mx-auto p-6 space-y-8">
       <div className="space-y-2">
@@ -139,6 +167,7 @@ const Dashboard = () => {
                 <TableRow>
                   <TableHead>Will Name</TableHead>
                   <TableHead>Creator</TableHead>
+                  <TableHead>TimeLock</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
@@ -149,6 +178,7 @@ const Dashboard = () => {
                     <TableCell>{will.willName}</TableCell>
                     <TableCell>{will.creator.username || will.creator.address}</TableCell>
                     <TableCell>{getStatusBadge(will.status)}</TableCell>
+                    <TableCell>{format(will.timeLock, "dd-MMM-yyyy hh:mm:ss")}</TableCell>
                     <TableCell>
                       <Dialog>
                         <DialogTrigger asChild>

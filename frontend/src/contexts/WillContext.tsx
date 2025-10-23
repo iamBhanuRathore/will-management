@@ -2,15 +2,15 @@ import { createContext, useContext, useState, type ReactNode, useCallback } from
 import apiClient from "@/lib/api";
 import secrets from "secrets.js-grempe";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { createEncodedMessage, encryptWithPublicKey, generateSecureRandomHex, xorHexStrings } from "@/lib/utils";
-import { AUTHENTICATE_MESSAGE } from "@/lib/constant";
+import { createEncodedMessage, decryptWithPrivateKey, encryptWithPublicKey, generateSecureRandomHex, xorHexStrings } from "@/lib/utils";
+import { AUTHENTICATE_MESSAGE, MY_PRIVATE_KEY } from "@/lib/constant";
 import bs58 from "bs58";
 interface WillContextType {
   myWills: any[];
   beneficiaryWills: any[];
   loading: boolean;
   fetchWills: () => void;
-  inheritWill: (willId: string) => Promise<any>;
+  inheritWill: (willId: string) => Promise<{ decryptedShare: string; platformShares: { share1: string; share2: string } }>;
   createWill: (willData: any) => Promise<void>;
 }
 
@@ -37,14 +37,41 @@ export const WillProvider = ({ children }: { children: ReactNode }) => {
 
   const inheritWill = async (willId: string) => {
     try {
+      if (!publicKey || !signMessage) {
+        throw new Error("Wallet not connected or does not support signing.");
+      }
+
       const response = await apiClient.get(`/api/will/${willId}/inherit`);
-      return response.data;
+      const { data: encryptedData } = response.data;
+
+      // The encryptedBeneficiaryShare is a base58 encoded string from the server.
+      const encryptedPayload = Buffer.from(bs58.decode(encryptedData.encryptedBeneficiaryShare));
+      const decryptedShare = await decryptWithPrivateKey(encryptedPayload, MY_PRIVATE_KEY);
+
+      // Return the decrypted share along with the platform's shares
+      // const finalDecryptedResponse = xorHexStrings(xorHexStrings(encryptedData.encryptedBeneficiaryShare, encryptedData.share1), encryptedData.share2);
+      const sharesToCombine = [encryptedData.encryptedBeneficiaryShare, encryptedData.share1, encryptedData.share2];
+
+      // Use the 'secrets.combine()' function to correctly reconstruct the secret.
+      const reconstructedSecretHex = secrets.combine(sharesToCombine);
+
+      // Convert the reconstructed hex back to the original plaintext secret.
+      const originalSecret = secrets.hex2str(reconstructedSecretHex);
+
+      return {
+        decryptedShare,
+        encryptedBeneficiaryShare: encryptedData.encryptedBeneficiaryShare,
+        platformShares: {
+          share1: encryptedData.share1,
+          share2: encryptedData.share2,
+        },
+        originalSecret,
+      };
     } catch (error) {
       console.error("Failed to inherit will", error);
       throw error;
     }
   };
-
   const createWill = async (willData: any) => {
     if (!publicKey || !signMessage) throw new Error("Wallet not connected");
 
@@ -98,17 +125,17 @@ export const WillProvider = ({ children }: { children: ReactNode }) => {
     const finalUserShareHex = xorHexStrings(xorHexStrings(U1, B1), S1);
     const finalBeneficiaryShareHex = xorHexStrings(xorHexStrings(U2, B2), S2);
     const encryptedBeneficiaryShare = encryptWithPublicKey(finalBeneficiaryShareHex, willData.beneficiaryAddress);
-    const encryptedUserShare = encryptWithPublicKey(finalUserShareHex, publicKey.toString());
+    const encryptedUserShare = encryptWithPublicKey(finalUserShareHex, publicKey.toBase58());
     // 8. Submit the final shares
     await apiClient.post("/api/will/submit-creation", {
       willId,
       encryptedUserShare: bs58.encode(encryptedUserShare),
       encryptedBeneficiaryShare: bs58.encode(encryptedBeneficiaryShare),
+      // encryptedBeneficiaryShare: finalBeneficiaryShareHex,
       signedPayload: bs58.encode(signature),
       message,
     });
 
-    // 9. Refresh wills
     fetchWills();
   };
 
