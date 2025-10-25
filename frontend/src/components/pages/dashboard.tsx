@@ -11,13 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import useCopyToClipboard from "@/hooks/use-copy-to-clipboard";
 import { Check, Copy } from "lucide-react";
 import { format } from "date-fns";
-import { decryptWithPrivateKey, encryptMessage } from "@/lib/utils";
+import { decryptWithPrivateKey, encryptTextMessage, encryptHexMessage } from "@/lib/utils";
 import bs58 from "bs58";
 import { MY_PRIVATE_KEY } from "@/lib/constant";
+import {} from "@noble/ed25519";
+
+import nacl from "tweetnacl";
 import { Keypair } from "@solana/web3.js";
 const Dashboard = () => {
   const { myWills, beneficiaryWills, loading, fetchWills, inheritWill } = useWill();
-  const { publicKey, wallet } = useWallet();
+  const { publicKey } = useWallet();
   const [claimedShare, setClaimedShare] = useState<any>(null);
   const { copy, isCopied } = useCopyToClipboard();
   useEffect(() => {
@@ -59,31 +62,25 @@ const Dashboard = () => {
     </div>
   );
   useEffect(() => {
-    if (!publicKey) return;
-    (async () => {
-      try {
-        const message = "Hello, Solana!";
-
-        // Get YOUR public key from YOUR private key
-        const myKeypair = Keypair.fromSecretKey(bs58.decode(MY_PRIVATE_KEY));
-        const myPublicKey = myKeypair.publicKey.toBase58();
-
-        console.log("🔑 My Public Key (from private key):", myPublicKey);
-        console.log("🔑 Wallet Public Key:", publicKey.toBase58());
-        console.log("🔑 Are they the same?", myPublicKey === publicKey.toBase58());
-
-        // Encrypt TO yourself (using your public key from private key)
-        const encrypted = encryptMessage(message, myPublicKey);
-        console.log("Encrypted:", bs58.encode(encrypted));
-
-        // Decrypt with your private key
-        const decrypted = await decryptWithPrivateKey(encrypted, MY_PRIVATE_KEY);
-        console.log("✅ Decrypted:", decrypted);
-      } catch (error) {
-        console.error("❌ Error:", error);
-      }
-    })();
+    if (!publicKey) {
+      console.log("No public key available");
+      return;
+    }
+    try {
+      const message = "Hello, Solana!";
+      // const messageBuffer = Buffer.from(message, "utf-8");
+      // const hexMessage = messageBuffer.toString("hex");
+      const encrypted = encryptTextMessage(message, publicKey.toBase58());
+      // const encrypted = encryptHexMessage(hexMessage, publicKey.toBase58());
+      console.log("Encrypted:", bs58.encode(encrypted));
+      // For testing, use a valid private key (replace MY_PRIVATE_KEY)
+      const decrypted = decryptWithPrivateKey(encrypted, MY_PRIVATE_KEY);
+      console.log("✅ Decrypted:", decrypted);
+    } catch (e) {
+      console.error("Encryption/Decryption error:", e);
+    }
   }, [publicKey]);
+
   return (
     <div className="container mx-auto p-6 space-y-8">
       <div className="space-y-2">

@@ -1,10 +1,10 @@
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
-import { MY_PRIVATE_KEY } from "@/lib/constant";
-
+import { Buffer } from "buffer";
+import * as ed2curve from "ed2curve";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -66,81 +66,94 @@ export const isValidSolanaPublicKey = (pubkey: string): boolean => {
   }
 };
 
-const deriveEncryptionKeypair = async (signMessage: (message: Uint8Array) => Promise<Uint8Array>): Promise<nacl.BoxKeyPair> => {
-  // Use a fixed message to derive a deterministic keypair
-  const derivationMessage = new TextEncoder().encode("DERIVE_ENCRYPTION_KEYPAIR_V1");
-  const signature = await signMessage(derivationMessage);
-
-  // Use the first 32 bytes of the signature as the seed
-  const seed = signature.slice(0, 32);
-
-  // Generate X25519 keypair from seed
-  return nacl.box.keyPair.fromSecretKey(seed);
-};
-
 // For hex input (your current approach)
-export const encryptWithPublicKey = (messageHex: string, recipientEncryptionPublicKey: string): Uint8Array => {
-  const recipientPublicKeyBytes = bs58.decode(recipientEncryptionPublicKey);
-  const plaintextBytes = Buffer.from(messageHex, "hex");
 
-  const ephemeralKeyPair = nacl.box.keyPair();
-  const nonce = nacl.randomBytes(nacl.box.nonceLength); // 24 bytes
+export const encryptTextMessage = (message: string, recipientPublicKeyBase58: string): Uint8Array => {
+  let recipientEdBytes: Uint8Array;
+  try {
+    recipientEdBytes = bs58.decode(recipientPublicKeyBase58);
+    if (recipientEdBytes.length !== 32) {
+      throw new Error("Decoded public key is not 32 bytes");
+    }
+  } catch (e) {
+    console.error("Failed to decode base58 public key:", e);
+    throw new Error("Invalid public key format");
+  }
 
-  const encrypted = nacl.box(plaintextBytes, nonce, recipientPublicKeyBytes, ephemeralKeyPair.secretKey);
+  const recipientCurveBytes = ed2curve.convertPublicKey(recipientEdBytes);
+  if (!recipientCurveBytes) {
+    console.error("Failed to convert Ed25519 to Curve25519:", { recipientEdBytes });
+    throw new Error("Invalid public key");
+  }
 
-  // Construct payload: ephemeralPublicKey(32) + nonce(24) + ciphertext
-  const payload = new Uint8Array(32 + 24 + encrypted.length);
-  payload.set(ephemeralKeyPair.publicKey, 0);
-  payload.set(nonce, 32);
-  payload.set(encrypted, 56);
-
-  return payload;
-};
-
-export const encryptMessage = (message: string, recipientEncryptionPublicKey: string): Uint8Array => {
-  const recipientPublicKeyBytes = bs58.decode(recipientEncryptionPublicKey);
   const plaintextBytes = new TextEncoder().encode(message);
   const ephemeralKeyPair = nacl.box.keyPair();
-  const nonce = nacl.randomBytes(24);
-  const sharedSecret = nacl.box.before(recipientPublicKeyBytes, ephemeralKeyPair.secretKey);
-  const encrypted = nacl.box.after(plaintextBytes, nonce, sharedSecret);
+  const sharedKey = nacl.box.before(recipientCurveBytes, ephemeralKeyPair.secretKey);
+  const nonce = nacl.randomBytes(nacl.box.nonceLength); // 24 bytes
+  const encrypted = nacl.secretbox(plaintextBytes, nonce, sharedKey);
   const payload = new Uint8Array(32 + 24 + encrypted.length);
   payload.set(ephemeralKeyPair.publicKey, 0);
   payload.set(nonce, 32);
   payload.set(encrypted, 56);
-  console.log("Total payload length:", payload.length);
   return payload;
 };
 
-export const decryptWithPrivateKey = async (encryptedPayload: Uint8Array, privateKeyBase58: string): Promise<string> => {
-  console.log("=== DECRYPTION DEBUG ===");
-  console.log("Encrypted payload length:", encryptedPayload.length);
+export const encryptHexMessage = (messageHex: string, recipientPublicKeyBase58: string): Uint8Array => {
+  let recipientEdBytes: Uint8Array;
+  try {
+    recipientEdBytes = bs58.decode(recipientPublicKeyBase58);
+    if (recipientEdBytes.length !== 32) {
+      throw new Error("Decoded public key is not 32 bytes");
+    }
+  } catch (e) {
+    console.error("Failed to decode base58 public key:", e);
+    throw new Error("Invalid public key format");
+  }
 
-  // Parse payload
+  const recipientCurveBytes = ed2curve.convertPublicKey(recipientEdBytes);
+  if (!recipientCurveBytes) {
+    console.error("Failed to convert Ed25519 to Curve25519:", { recipientEdBytes });
+    throw new Error("Invalid public key");
+  }
+
+  const plaintextBytes = Buffer.from(messageHex, "hex");
+  const ephemeralKeyPair = nacl.box.keyPair();
+  const nonce = nacl.randomBytes(nacl.box.nonceLength); // 24 bytes
+  const encrypted = nacl.box(plaintextBytes, nonce, recipientCurveBytes, ephemeralKeyPair.secretKey);
+  const payload = new Uint8Array(32 + 24 + encrypted.length);
+  payload.set(ephemeralKeyPair.publicKey, 0);
+  payload.set(nonce, 32);
+  payload.set(encrypted, 56);
+  return payload;
+};
+
+export const decryptWithPrivateKey = (encryptedPayload: Uint8Array, privateKeyBase58: string): string => {
+  let secretKeyBytes: Uint8Array;
+  try {
+    secretKeyBytes = bs58.decode(privateKeyBase58);
+    if (secretKeyBytes.length !== 64) {
+      throw new Error("Decoded private key is not 64 bytes");
+    }
+  } catch (e) {
+    console.error("Failed to decode base58 private key:", e);
+    return "Decryption failed: invalid private key format";
+  }
+
   const ephemeralPublicKey = encryptedPayload.slice(0, 32);
   const nonce = encryptedPayload.slice(32, 56);
   const ciphertext = encryptedPayload.slice(56);
-
-  console.log("Ephemeral public key:", bs58.encode(ephemeralPublicKey));
-  console.log("Nonce length:", nonce.length);
-  console.log("Ciphertext length:", ciphertext.length);
-
-  // Decode private key
-  const secretKeyUint8 = bs58.decode(privateKeyBase58);
-  const keypair = Keypair.fromSecretKey(secretKeyUint8);
-  const privateKey = keypair.secretKey.slice(0, 32);
-
-  console.log("My public key:", keypair.publicKey.toBase58());
-
-  // Create shared secret and decrypt
-  const sharedSecret = nacl.box.before(ephemeralPublicKey, privateKey);
-  const decrypted = nacl.box.open.after(ciphertext, nonce, sharedSecret);
-
+  const seed = secretKeyBytes.slice(0, 32);
+  const h = nacl.hash(seed); // SHA-512
+  let scalar = h.slice(0, 32);
+  scalar[0] &= 248;
+  scalar[31] &= 127;
+  scalar[31] |= 64;
+  const encryptionKeypair = nacl.box.keyPair.fromSecretKey(scalar);
+  const sharedKey = nacl.box.before(ephemeralPublicKey, encryptionKeypair.secretKey);
+  const decrypted = nacl.secretbox.open(ciphertext, nonce, sharedKey);
   if (!decrypted) {
-    console.error("❌ Decryption failed - key mismatch or corrupted data");
-    throw new Error("Decryption failed");
+    console.error("Decryption failed: invalid ciphertext or keys");
+    return "Decryption failed";
   }
-
-  console.log("✅ Decryption successful!");
   return new TextDecoder().decode(decrypted);
 };

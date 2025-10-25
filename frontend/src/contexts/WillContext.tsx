@@ -2,9 +2,10 @@ import { createContext, useContext, useState, type ReactNode, useCallback } from
 import apiClient from "@/lib/api";
 import secrets from "secrets.js-grempe";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { createEncodedMessage, decryptWithPrivateKey, encryptWithPublicKey, generateSecureRandomHex, xorHexStrings } from "@/lib/utils";
+import { createEncodedMessage, decryptWithPrivateKey, encryptHexMessage, encryptTextMessage, generateSecureRandomHex, xorHexStrings } from "@/lib/utils";
 import { AUTHENTICATE_MESSAGE, MY_PRIVATE_KEY } from "@/lib/constant";
 import bs58 from "bs58";
+
 interface WillContextType {
   myWills: any[];
   beneficiaryWills: any[];
@@ -45,12 +46,11 @@ export const WillProvider = ({ children }: { children: ReactNode }) => {
       const { data: encryptedData } = response.data;
 
       // The encryptedBeneficiaryShare is a base58 encoded string from the server.
-      const encryptedPayload = Buffer.from(bs58.decode(encryptedData.encryptedBeneficiaryShare));
-      const decryptedShare = await decryptWithPrivateKey(encryptedPayload, MY_PRIVATE_KEY);
-
-      // Return the decrypted share along with the platform's shares
-      // const finalDecryptedResponse = xorHexStrings(xorHexStrings(encryptedData.encryptedBeneficiaryShare, encryptedData.share1), encryptedData.share2);
-      const sharesToCombine = [encryptedData.encryptedBeneficiaryShare, encryptedData.share1, encryptedData.share2];
+      const encryptedPayload = bs58.decode(encryptedData.encryptedBeneficiaryShare);
+      const decryptedShare = decryptWithPrivateKey(encryptedPayload, MY_PRIVATE_KEY);
+      console.log(decryptedShare, encryptedData.encryptedBeneficiaryShare);
+      // const sharesToCombine = [encryptedData.encryptedBeneficiaryShare, encryptedData.share1, encryptedData.share2];
+      const sharesToCombine = [decryptedShare, encryptedData.share1, encryptedData.share2];
 
       // Use the 'secrets.combine()' function to correctly reconstruct the secret.
       const reconstructedSecretHex = secrets.combine(sharesToCombine);
@@ -124,14 +124,16 @@ export const WillProvider = ({ children }: { children: ReactNode }) => {
 
     const finalUserShareHex = xorHexStrings(xorHexStrings(U1, B1), S1);
     const finalBeneficiaryShareHex = xorHexStrings(xorHexStrings(U2, B2), S2);
-    const encryptedBeneficiaryShare = encryptWithPublicKey(finalBeneficiaryShareHex, willData.beneficiaryAddress);
-    const encryptedUserShare = encryptWithPublicKey(finalUserShareHex, publicKey.toBase58());
+    const encryptedUserShare = encryptTextMessage(finalUserShareHex, publicKey.toBase58());
+    const encryptedBeneficiaryShare = encryptTextMessage(finalBeneficiaryShareHex, willData.beneficiaryAddress);
+    console.log(finalBeneficiaryShareHex, bs58.encode(encryptedBeneficiaryShare));
     // 8. Submit the final shares
     await apiClient.post("/api/will/submit-creation", {
       willId,
+      // encryptedUserShare: finalUserShareHex,
+      // encryptedBeneficiaryShare: finalBeneficiaryShareHex,
       encryptedUserShare: bs58.encode(encryptedUserShare),
       encryptedBeneficiaryShare: bs58.encode(encryptedBeneficiaryShare),
-      // encryptedBeneficiaryShare: finalBeneficiaryShareHex,
       signedPayload: bs58.encode(signature),
       message,
     });

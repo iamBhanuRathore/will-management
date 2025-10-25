@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWill } from "@/contexts/WillContext";
 import { Textarea } from "@/components/ui/textarea";
-import { format, addMinutes, addDays } from "date-fns";
+import { format, addMinutes } from "date-fns";
 
 const DATETIME_LOCAL_FORMAT = "yyyy-MM-dd'T'HH:mm";
 
