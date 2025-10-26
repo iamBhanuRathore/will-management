@@ -77,7 +77,11 @@ router.get("/:willId/inherit", protect, validate(inheritWillSchema), async (req,
     if (will.beneficiaryAddress !== userAddress) {
       return res.status(403).json({ success: false, message: "Forbidden: You are not the beneficiary of this will." });
     }
-
+    if (will.status !== WillStatus.ACTIVE) {
+      return res.status(400).json({
+        message: `This will is ${will.status.toLowerCase()} and cannot be claimed`,
+      });
+    }
     if (new Date() < new Date(will.timeLock)) {
       return res.status(400).json({ success: false, message: "The time lock for this will has not yet expired." });
     }
@@ -175,7 +179,12 @@ router.post("/initiate-creation", protect, async (req, res) => {
   let serverShares: string[] = [];
 
   try {
-    await verifySolanaSignature(userPublicKey, signedPayload, message);
+    const verification = await verifySolanaSignature(userPublicKey, signedPayload, message);
+
+    if (!verification.success) {
+      return res.status(verification.status).json({ success: verification.status, message: verification.message });
+    }
+
     serverShares = secrets.share(R2_hex, 4, 3);
     const [serverS1, serverS2, serverS3, serverS4] = serverShares;
 
@@ -234,7 +243,23 @@ router.post("/initiate-creation", protect, async (req, res) => {
 });
 router.post("/submit-creation", protect, async (req, res) => {
   const { encryptedBeneficiaryShare, encryptedUserShare, signedPayload, message, willId } = req.body;
-  await verifySolanaSignature(req.user?.address!, signedPayload, message);
+  const dbWill = await prisma.will.findUnique({
+    where: { id: willId },
+  });
+
+  if (!dbWill) {
+    return res.status(404).json({ success: false, message: "Will not found." });
+  }
+
+  if (dbWill.creatorAddress !== req.user?.address) {
+    throw new Error("Unauthorized");
+  }
+  const verification = await verifySolanaSignature(req.user?.address!, signedPayload, message);
+
+  if (!verification.success) {
+    return res.status(verification.status).json({ success: verification.status, message: verification.message });
+  }
+
   const will = await prisma.will.update({
     where: {
       id: willId,
