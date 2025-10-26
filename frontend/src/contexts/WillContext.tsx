@@ -2,7 +2,7 @@ import { createContext, useContext, useState, type ReactNode, useCallback } from
 import apiClient from "@/lib/api";
 import secrets from "secrets.js-grempe";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { createEncodedMessage, decryptWithPrivateKey, encryptHexMessage, encryptTextMessage, generateSecureRandomHex, xorHexStrings } from "@/lib/utils";
+import { createEncodedMessage, decryptWithPrivateKey, encryptTextMessage, generateSecureRandomHex, xorHexStrings } from "@/lib/utils";
 import { AUTHENTICATE_MESSAGE } from "@/lib/constant";
 import bs58 from "bs58";
 
