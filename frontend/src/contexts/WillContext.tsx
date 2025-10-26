@@ -3,7 +3,7 @@ import apiClient from "@/lib/api";
 import secrets from "secrets.js-grempe";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { createEncodedMessage, decryptWithPrivateKey, encryptHexMessage, encryptTextMessage, generateSecureRandomHex, xorHexStrings } from "@/lib/utils";
-import { AUTHENTICATE_MESSAGE, MY_PRIVATE_KEY } from "@/lib/constant";
+import { AUTHENTICATE_MESSAGE } from "@/lib/constant";
 import bs58 from "bs58";
 
 interface WillContextType {
@@ -11,7 +11,7 @@ interface WillContextType {
   beneficiaryWills: any[];
   loading: boolean;
   fetchWills: () => void;
-  inheritWill: (willId: string) => Promise<{ decryptedShare: string; platformShares: { share1: string; share2: string } }>;
+  inheritWill: (willId: string, privateKey: string) => Promise<{ decryptedShare: string; platformShares: { share1: string; share2: string }; originalSecret: string }>;
   createWill: (willData: any) => Promise<void>;
 }
 
@@ -36,7 +36,7 @@ export const WillProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const inheritWill = async (willId: string) => {
+  const inheritWill = async (willId: string, privateKey: string) => {
     try {
       if (!publicKey || !signMessage) {
         throw new Error("Wallet not connected or does not support signing.");
@@ -45,17 +45,13 @@ export const WillProvider = ({ children }: { children: ReactNode }) => {
       const response = await apiClient.get(`/api/will/${willId}/inherit`);
       const { data: encryptedData } = response.data;
 
-      // The encryptedBeneficiaryShare is a base58 encoded string from the server.
       const encryptedPayload = bs58.decode(encryptedData.encryptedBeneficiaryShare);
-      const decryptedShare = decryptWithPrivateKey(encryptedPayload, MY_PRIVATE_KEY);
-      console.log(decryptedShare, encryptedData.encryptedBeneficiaryShare);
-      // const sharesToCombine = [encryptedData.encryptedBeneficiaryShare, encryptedData.share1, encryptedData.share2];
+      const decryptedShare = decryptWithPrivateKey(encryptedPayload, privateKey);
+
       const sharesToCombine = [decryptedShare, encryptedData.share1, encryptedData.share2];
 
-      // Use the 'secrets.combine()' function to correctly reconstruct the secret.
       const reconstructedSecretHex = secrets.combine(sharesToCombine);
 
-      // Convert the reconstructed hex back to the original plaintext secret.
       const originalSecret = secrets.hex2str(reconstructedSecretHex);
 
       return {

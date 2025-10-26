@@ -4,39 +4,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CreateWillModal } from "@/components/CreateWillModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import useCopyToClipboard from "@/hooks/use-copy-to-clipboard";
-import { Check, Copy } from "lucide-react";
 import { format } from "date-fns";
-import { decryptWithPrivateKey, encryptTextMessage, encryptHexMessage } from "@/lib/utils";
-import bs58 from "bs58";
-import { MY_PRIVATE_KEY } from "@/lib/constant";
-import {} from "@noble/ed25519";
-
-import nacl from "tweetnacl";
-import { Keypair } from "@solana/web3.js";
+import { InheritWillModal } from "../InheritWillModal";
 const Dashboard = () => {
-  const { myWills, beneficiaryWills, loading, fetchWills, inheritWill } = useWill();
+  const { myWills, beneficiaryWills, loading, fetchWills } = useWill();
   const { publicKey } = useWallet();
-  const [claimedShare, setClaimedShare] = useState<any>(null);
-  const { copy, isCopied } = useCopyToClipboard();
   useEffect(() => {
     if (publicKey) {
       fetchWills();
     }
   }, [publicKey, fetchWills]);
-
-  const handleInherit = async (willId: string) => {
-    try {
-      const data = await inheritWill(willId); // data is now { decryptedShare, platformShares }
-      setClaimedShare(data);
-    } catch (error) {
-      // Error is already logged in context
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     let variant: "default" | "destructive" | "outline" | "secondary" = "default";
@@ -61,25 +41,6 @@ const Dashboard = () => {
       <Skeleton className="h-8 w-full" />
     </div>
   );
-  useEffect(() => {
-    if (!publicKey) {
-      console.log("No public key available");
-      return;
-    }
-    try {
-      const message = "Hello, Solana!";
-      // const messageBuffer = Buffer.from(message, "utf-8");
-      // const hexMessage = messageBuffer.toString("hex");
-      const encrypted = encryptTextMessage(message, publicKey.toBase58());
-      // const encrypted = encryptHexMessage(hexMessage, publicKey.toBase58());
-      console.log("Encrypted:", bs58.encode(encrypted));
-      // For testing, use a valid private key (replace MY_PRIVATE_KEY)
-      const decrypted = decryptWithPrivateKey(encrypted, MY_PRIVATE_KEY);
-      console.log("✅ Decrypted:", decrypted);
-    } catch (e) {
-      console.error("Encryption/Decryption error:", e);
-    }
-  }, [publicKey]);
 
   return (
     <div className="container mx-auto p-6 space-y-8">
@@ -177,31 +138,7 @@ const Dashboard = () => {
                     <TableCell>{getStatusBadge(will.status)}</TableCell>
                     <TableCell>{format(will.timeLock, "dd-MMM-yyyy hh:mm:ss")}</TableCell>
                     <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button onClick={() => handleInherit(will.id)} disabled={new Date() < new Date(will.timeLock)}>
-                            Claim
-                          </Button>
-                        </DialogTrigger>
-                        {claimedShare && (
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Inheritance Claimed</DialogTitle>
-                              <DialogDescription>Here is the secret share from the platform. Keep it safe.</DialogDescription>
-                            </DialogHeader>
-                            <div className="mt-4 space-y-4">
-                              <div className="bg-muted p-4 rounded-md relative">
-                                <pre className="whitespace-pre-wrap break-all text-sm">
-                                  <code>{JSON.stringify(claimedShare, null, 2)}</code>
-                                </pre>
-                                <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-8 w-8" onClick={() => copy(JSON.stringify(claimedShare, null, 2))}>
-                                  {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        )}
-                      </Dialog>
+                      <InheritWillModal will={will} onClaimed={() => {}} />
                     </TableCell>
                   </TableRow>
                 ))}

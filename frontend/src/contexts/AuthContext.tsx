@@ -1,5 +1,4 @@
 import apiClient from "@/lib/api";
-import { AUTHENTICATE_MESSAGE } from "@/lib/constant";
 import { createEncodedMessage } from "@/lib/utils";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react";
