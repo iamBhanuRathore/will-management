@@ -13,7 +13,7 @@ import Landing from "./components/pages/Landing";
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <div className="bg-background text-accent-foreground min-h-screen flex flex-col">
+      <div className="bg-accent text-accent-foreground min-h-screen flex flex-col">
         <WalletProviderLayout>
           <Router>
             <AuthProvider>

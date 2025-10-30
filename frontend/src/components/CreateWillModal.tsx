@@ -20,6 +20,7 @@ const formatTimeLock = (date: Date): string => {
 
 export function CreateWillModal() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 💡 Initialize with valid test data
   const [willName, setWillName] = useState("testing");
@@ -36,18 +37,21 @@ export function CreateWillModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return; // Prevent double submission
+    setIsSubmitting(true);
     try {
       await createWill({
         willName,
         willDescription,
         beneficiaryAddress,
-        // timeLock is already a Date object
         timeLock,
         secret,
       });
       setIsOpen(false);
     } catch (error) {
       console.error("Failed to create will", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -89,7 +93,9 @@ export function CreateWillModal() {
             <Label htmlFor="secret">Wallet Secret</Label>
             <Textarea rows={3} required id="secret" value={secret} onChange={(e) => setSecret(e.target.value)} />
           </div>
-          <Button type="submit">Create Will</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Create Will"}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

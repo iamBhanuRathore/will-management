@@ -3,15 +3,18 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { CreateWillModal } from "@/components/CreateWillModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { InheritWillModal } from "../InheritWillModal";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { solanaConnection } from "@/lib/solana";
 const Dashboard = () => {
   const { myWills, beneficiaryWills, loading, fetchWills } = useWill();
   const { publicKey } = useWallet();
+  const [balance, setBalance] = useState(0);
+  const connection = solanaConnection();
   useEffect(() => {
     if (publicKey) {
       fetchWills();
@@ -41,7 +44,26 @@ const Dashboard = () => {
       <Skeleton className="h-8 w-full" />
     </div>
   );
+  useEffect(() => {
+    async function getSolBalance() {
+      if (!publicKey) return;
+      try {
+        // 3. Call getBalance
+        const lamports = await connection.getBalance(publicKey);
 
+        // Convert lamports to SOL
+        const solBalance = lamports / LAMPORTS_PER_SOL;
+
+        console.log(`Balance in Lamports: ${lamports}`);
+        console.log(`Balance in SOL: ${solBalance}`);
+        setBalance(solBalance);
+      } catch (error) {
+        console.error("Error fetching balance:", error);
+        return 0;
+      }
+    }
+    getSolBalance();
+  }, [publicKey]);
   return (
     <div className="container mx-auto p-6 space-y-8">
       <div className="space-y-2">
@@ -52,7 +74,10 @@ const Dashboard = () => {
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Wallet Information</CardTitle>
+            <CardTitle className="flex justify-between">
+              <p>Wallet Information</p>
+              <p>{balance}</p>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {publicKey ? (

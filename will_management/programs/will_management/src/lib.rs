@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::clock::Clock;
-declare_id!("G949ojk7fbgzHAEysoQUsu2CBy6CKC8wcWSerZFmpaCg");
+declare_id!("CcjnCrW2Gf4WsZpcu3Jn8k4biHCwKUBn1Ce8QS7ZWP7D");
 
 #[program]
 pub mod will_management {
@@ -95,19 +95,29 @@ pub mod will_management {
 }
 
 #[derive(Accounts)]
-#[instruction(will_name: String)]
+#[instruction(will_name: String, will_description: String)]
 pub struct CreateWill<'info> {
     #[account(
         init,
         payer = creator,
-        space = 8 + 32 + 32 + 8 + 1 + 4 + will_name.len() + 4 + 500 + 4 + 1024 + 4 + 1024, // Allocate space dynamically but with max limits
+        space = 
+            8 +   // discriminator
+            32 +  // creator: Pubkey
+            32 +  // beneficiary: Pubkey
+            8 +   // time_lock: u64
+            1 +   // status: u8
+            4 + will_name.len() + 
+            4 + will_description.len() + 
+            4 + 1024 + 
+            4 + 1024,
         seeds = [creator.key().as_ref(), will_name.as_bytes()],
         bump
     )]
     pub will: Account<'info, WillAccount>,
     #[account(mut)]
     pub creator: Signer<'info>,
-    pub beneficiary: AccountInfo<'info>, // Beneficiary pubkey (not signer at creation)
+    /// CHECK: Beneficiary's pubkey is only stored. No CPI or fund transfer.
+    pub beneficiary: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 

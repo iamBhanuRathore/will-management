@@ -10,7 +10,7 @@ const Header = () => {
   return (
     <header className="p-4 flex justify-between items-center border-b">
       <Link to="/" className="text-2xl font-bold">
-        Will Management
+        LegacyLock
       </Link>
       <div className="flex items-center gap-4">
         <WalletMultiButton />

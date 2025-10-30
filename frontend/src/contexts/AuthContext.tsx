@@ -3,6 +3,7 @@ import { createEncodedMessage } from "@/lib/utils";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react";
 import bs58 from "bs58";
+import { AUTHENTICATE_MESSAGE } from "@/lib/constant";
 
 interface AuthContextType {
   isAuthenticated: boolean;

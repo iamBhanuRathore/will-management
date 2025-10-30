@@ -188,6 +188,7 @@ router.post("/initiate-creation", protect, async (req, res) => {
     serverShares = secrets.share(R2_hex, 4, 3);
     const [serverS1, serverS2, serverS3, serverS4] = serverShares;
 
+    // TODO: Need to encrypt Them as well, So if the DB got hacked we dont get f*cked.
     const server1ShareHex = xorHexStrings(xorHexStrings(U3, B3), serverS3!);
     const server2ShareHex = xorHexStrings(xorHexStrings(U4, B4), serverS4!);
 
