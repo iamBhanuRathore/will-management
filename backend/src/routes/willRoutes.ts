@@ -9,9 +9,10 @@ import { PublicKey } from "@solana/web3.js";
 import crypto from "crypto";
 import { Intent, WillStatus } from "@prisma/client";
 import { isValidSolanaPublicKey, secureClear, verifySolanaSignature, xorHexStrings } from "../lib/utils";
+import { useProgram } from "../lib/program";
 
 const router = Router();
-
+const { program, programId } = useProgram();
 // ====================================================================
 // 2. Endpoint for getting all the wills where I am a beneficiary
 // ====================================================================
@@ -58,7 +59,6 @@ router.get("/my-wills", protect, async (req, res) => {
     res.status(500).json({ success: false, message: "An internal server error occurred." });
   }
 });
-
 // ====================================================================
 // 4. Endpoint to inherit the will and get the platform's secret
 // ====================================================================
@@ -69,52 +69,85 @@ router.get("/:willId/inherit", protect, validate(inheritWillSchema), async (req,
   try {
     const will = await prisma.will.findUnique({
       where: { id: willId },
+      include: { encryptedShare: true },
     });
 
     if (!will) {
       return res.status(404).json({ success: false, message: "Will not found." });
     }
+
     if (will.beneficiaryAddress !== userAddress) {
       return res.status(403).json({ success: false, message: "Forbidden: You are not the beneficiary of this will." });
     }
-    if (will.status !== WillStatus.ACTIVE) {
-      return res.status(400).json({
-        message: `This will is ${will.status.toLowerCase()} and cannot be claimed`,
-      });
-    }
+
     if (new Date() < new Date(will.timeLock)) {
       return res.status(400).json({ success: false, message: "The time lock for this will has not yet expired." });
     }
 
-    const encryptedShare = await prisma.encryptedShare.findUnique({
-      where: { willId: will.id },
-      select: {
-        encryptedBeneficiaryShare: true,
-        share1: true,
-        share2: true,
-      },
-    });
+    // Verify on-chain claim status
+    const creatorPubkey = new PublicKey(will.creatorAddress);
+    const [willPda] = PublicKey.findProgramAddressSync([creatorPubkey.toBuffer(), Buffer.from(will.willName)], new PublicKey(programId));
 
-    if (!encryptedShare) {
-      // This indicates a data integrity issue
+    const onchainWill = await (program.account as any).willAccount.fetch(willPda);
+
+    if (onchainWill.status !== 3) {
+      return res.status(400).json({
+        success: false,
+        message: "Will must be claimed on-chain before inheriting shares.",
+      });
+    }
+
+    if (!will.encryptedShare) {
       console.error(`CRITICAL: Encrypted share not found for willId: ${will.id}`);
       return res.status(500).json({ success: false, message: "Could not retrieve the encrypted share." });
     }
 
-    // IMPORTANT: In a real system, you would first decrypt the share here using the platform's private key.
-    // const decryptedShare = decryptWithPlatformKey(encryptedShare.share);
+    // === IDEMPOTENT: Allow re-fetch if already claimed by same user ===
+    if (will.status === WillStatus.CLAIMED) {
+      console.log(`Will ${willId} already claimed by ${userAddress}. Re-fetching shares.`);
+      return res.status(200).json({
+        success: true,
+        message: "Will already inherited. Returning shares.",
+        data: {
+          encryptedBeneficiaryShare: will.encryptedShare.encryptedBeneficiaryShare,
+          share1: will.encryptedShare.share1,
+          share2: will.encryptedShare.share2,
+        },
+      });
+    }
+
+    // === First-time claim: Update status  ===
+    if (will.status !== WillStatus.ACTIVE) {
+      return res.status(400).json({
+        success: false,
+        message: `This will is ${will.status.toLowerCase()} and cannot be claimed.`,
+      });
+    }
+
+    await prisma.will.update({
+      where: { id: willId },
+      data: {
+        status: WillStatus.CLAIMED,
+      },
+    });
+
+    console.log(`Will ${willId} successfully inherited by ${userAddress}`);
 
     res.status(200).json({
       success: true,
-      message: "Share retrieved successfully.",
-      // For this example, we return the encrypted share. In production, this would be the decrypted share.
-      data: encryptedShare,
+      message: "Will inherited successfully. Share retrieved.",
+      data: {
+        encryptedBeneficiaryShare: will.encryptedShare.encryptedBeneficiaryShare,
+        share1: will.encryptedShare.share1,
+        share2: will.encryptedShare.share2,
+      },
     });
   } catch (error) {
     console.error("Error inheriting will:", error);
     res.status(500).json({ success: false, message: "An internal server error occurred." });
   }
 });
+
 router.get("/creation-nonce", protect, async (req, res) => {
   const userAddress = req.user!.address;
   // const verificationResult = await verifySolanaSignature(address, signature, message);
@@ -194,7 +227,7 @@ router.post("/initiate-creation", protect, async (req, res) => {
 
     const will = await prisma.will.create({
       data: {
-        timeLock: timeLock,
+        timeLock: new Date(timeLock),
         willDescription: willDescription,
         willName: willName,
         encryptedShare: {
@@ -268,10 +301,8 @@ router.post("/submit-creation", protect, async (req, res) => {
     data: {
       encryptedShare: {
         update: {
-          data: {
-            encryptedUserShare,
-            encryptedBeneficiaryShare,
-          },
+          encryptedBeneficiaryShare,
+          encryptedUserShare,
         },
       },
       status: WillStatus.ACTIVE,

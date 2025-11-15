@@ -6,30 +6,32 @@ import { useState } from "react";
 import { useWill } from "@/contexts/WillContext";
 import { Check, Copy } from "lucide-react";
 import useCopyToClipboard from "@/hooks/use-copy-to-clipboard";
-import { useProgram } from "@/lib/program";
-import { web3 } from "@coral-xyz/anchor";
-import { useWallet } from "@solana/wallet-adapter-react";
+// import { useProgram } from "@/lib/program";
+// import { web3 } from "@coral-xyz/anchor";
+// import { useWallet } from "@solana/wallet-adapter-react";
 
 export const InheritWillModal = ({ will, onClaimed }: any) => {
   const [privateKey, setPrivateKey] = useState("");
-  const { program } = useProgram();
-  const { publicKey } = useWallet();
+  // const { program } = useProgram();
+  // const { publicKey } = useWallet();
   const { inheritWill } = useWill();
   const [claimedShare, setClaimedShare] = useState<any>(null);
   const { copy, isCopied } = useCopyToClipboard();
   const [isOpen, setIsOpen] = useState(false);
   const handleInherit = async () => {
-    const [willPda] = web3.PublicKey.findProgramAddressSync([new web3.PublicKey(will.creator.address).toBuffer(), Buffer.from(will.willName)], program.programId);
+    // const [willPda] = web3.PublicKey.findProgramAddressSync([new web3.PublicKey(will.creator.address).toBuffer(), Buffer.from(will.willName)], program.programId);
+    // console.log(willPda);
+    // const acc = await (program.account as any).willAccount.fetch(willPda);
+    // console.log(acc);
+    // const sig = await program.methods
+    //   .claimWill()
+    //   .accounts({
+    //     will: willPda,
+    //     beneficiary: publicKey!,
+    //   })
+    //   .rpc();
 
-    const sig = await program.methods
-      .claimWill()
-      .accounts({
-        will: willPda,
-        beneficiary: publicKey!,
-      })
-      .rpc();
-
-    console.log("claim_will tx:", sig);
+    // console.log("claim_will tx:", sig);
     // then fetch the decrypted secret
     const data = await inheritWill(will.id, privateKey);
     setClaimedShare(data);

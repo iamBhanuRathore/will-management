@@ -4,7 +4,14 @@ export const createWillSchema = z.object({
   body: z.object({
     willName: z.string({ error: "willName is required." }).min(1, "willName cannot be empty."),
     willDescription: z.string({ error: "willDescription is required." }).min(1, "willDescription cannot be empty."),
-    beneficiaryAddress: z.string({ error: "beneficiaryAddress is required." }).regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format."),
+    beneficiaryAddress: z.string().refine((val) => {
+      try {
+        new PublicKey(val);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }, "Invalid Solana address."),
     timeLock: z.string({ error: "timeLock is required." }).datetime({ message: "timeLock must be a valid ISO 8601 date-time string." }),
     share1: z.string({ error: "share is required." }).min(1, "The encrypted share cannot be empty."),
     share2: z.string({ error: "share is required." }).min(1, "The encrypted share cannot be empty."),

@@ -1,16 +1,15 @@
 import { clusterApiUrl, Connection, type Cluster } from "@solana/web3.js";
-import env from "@/utils/env";
 
 // Configuration constants
 const NETWORK: Cluster = "devnet";
 export const getSolanaConnection = (): Connection => {
-  const endpoint = env.VITE_RPC_URL || clusterApiUrl(NETWORK);
+  const endpoint = process.env.RPC_URL || clusterApiUrl(NETWORK);
   return new Connection(endpoint, {
     commitment: "confirmed",
     // Disable WS → no reconnect spam in console
     wsEndpoint: undefined,
     // Optional: add a short timeout so failed HTTP calls don’t hang forever
-    fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(30_000) }),
+    // fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(30_000) }),
   });
 };
 
