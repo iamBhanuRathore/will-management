@@ -17,10 +17,11 @@
     "ts-jest": "^29.4.1",
     "vitest": "^3.2.4"
   },
-  "scripts": {
+"scripts": {
     "dev": "bun --watch src/index.ts",
+    "start": "node dist/index.js",
     "test": "jest",
-    "build": "bun build ./src/index.ts --outdir ./dist",
+    "build": "tsc",
     "prepare": "husky",
     "vercel-build": "prisma generate && prisma db push"
   },
