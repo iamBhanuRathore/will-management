@@ -21,7 +21,8 @@
     "dev": "bun --watch src/index.ts",
     "test": "jest",
     "build": "bun build ./src/index.ts --outdir ./dist",
-    "prepare": "husky"
+    "prepare": "husky",
+    "vercel-build": "prisma generate && prisma db push"
   },
   "peerDependencies": {
     "typescript": "^5"

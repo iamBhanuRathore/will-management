@@ -27,6 +27,11 @@ app.get("/", (req, res) => {
 app.use("/api/will", willRoutes);
 app.use("/api/auth", authRoutes);
 // --- Start Server ---
-app.listen(PORT, () => {
-  console.log(`🚀 Express server is running at http://localhost:${PORT}`);
-});
+// Vercel will handle the listening part, so we only listen locally
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Express server is running at http://localhost:${PORT}`);
+  });
+}
+
+export default app;
