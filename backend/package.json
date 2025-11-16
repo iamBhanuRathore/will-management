@@ -18,20 +18,7 @@
     "vitest": "^3.2.4"
   },
   "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "build": "bun build ./src/index.ts ./src/vercel-entry.ts --outdir ./dist --target=node --minify",
-    "vercel-build": "cp package.json dist/",
-    "vercel-install": "npm install -g bun && bun install"
-  },
-  "vercel": {
-    "functions": {
-      "api/**/*.js": {
-        "runtime": "nodejs20.x"
-      }
-    }
-  },
-  "peerDependencies": {
-    "typescript": "^5"
+    "dev": "bun --watch src/index.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

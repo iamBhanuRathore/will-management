@@ -1,16 +1,8 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext"],
     "target": "ESNext",
-    "module": "nodenext",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "moduleResolution": "nodenext",
-    "allowImportingTsExtensions": false,
-    "verbatimModuleSyntax": true,
-    "noEmit": false, // ← MUST be false
-    "strict": true,
+    "module": "NodeNext",
     "skipLibCheck": true
   },
-  "include": ["src/**/*"]
+  "exclude": ["node_modules"]
 }
