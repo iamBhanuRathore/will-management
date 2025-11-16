@@ -1,6 +1,6 @@
-import idl from "./idl/will_management.json";
+import idl from "./idl/will_management.json" with { type: "json" };
 import { Program } from "@coral-xyz/anchor";
-import { solanaConnection } from "./solana";
+import { solanaConnection } from "./solana.ts";
 
 export const useProgram = () => {
   const connection = solanaConnection();

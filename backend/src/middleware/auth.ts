@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { prisma } from "../lib/db";
+import { prisma } from "../lib/db.ts";
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
   let token;

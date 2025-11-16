@@ -1,15 +1,15 @@
 import { Router } from "express";
-import { prisma } from "../lib/db";
-import { protect } from "../middleware/auth";
-import { validate } from "../middleware/validate"; // Import our new Zod middleware
-import { createWillSchema, inheritWillSchema, nonceSchema } from "../schema";
+import { prisma } from "../lib/db.ts";
+import { protect } from "../middleware/auth.ts";
+import { validate } from "../middleware/validate.ts"; // Import our new Zod middleware
+import { createWillSchema, inheritWillSchema, nonceSchema } from "../schema/index.ts";
 import type z from "zod";
 import secrets from "secrets.js-grempe"; // Shamir's Secret Sharing library
 import { PublicKey } from "@solana/web3.js";
 import crypto from "crypto";
 import { Intent, WillStatus } from "@prisma/client";
-import { isValidSolanaPublicKey, secureClear, verifySolanaSignature, xorHexStrings } from "../lib/utils";
-import { useProgram } from "../lib/program";
+import { isValidSolanaPublicKey, secureClear, verifySolanaSignature, xorHexStrings } from "../lib/utils.ts";
+import { useProgram } from "../lib/program.ts";
 
 const router = Router();
 const { program, programId } = useProgram();

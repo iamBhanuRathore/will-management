@@ -3,8 +3,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
-import willRoutes from "./routes/willRoutes";
-import authRoutes from "./routes/authRoutes";
+import willRoutes from "./routes/willRoutes.ts";
+import authRoutes from "./routes/authRoutes.ts";
 
 // Load environment variables
 dotenv.config();
@@ -28,7 +28,7 @@ app.use("/api/will", willRoutes);
 app.use("/api/auth", authRoutes);
 // --- Start Server ---
 // Vercel will handle the listening part, so we only listen locally
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => {
     console.log(`🚀 Express server is running at http://localhost:${PORT}`);
   });

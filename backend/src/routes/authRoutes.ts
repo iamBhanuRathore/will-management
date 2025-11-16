@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { prisma } from "../lib/db";
-import { validate } from "../middleware/validate";
-import { nonceSchema, verifySchema } from "../schema";
+import { prisma } from "../lib/db.ts";
+import { validate } from "../middleware/validate.ts";
+import { nonceSchema, verifySchema } from "../schema/index.ts";
 import crypto from "crypto";
 // import { verifyMessage } from "ethers";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 import type z from "zod";
-import { verifySolanaSignature } from "../lib/utils";
+import { verifySolanaSignature } from "../lib/utils.ts";
 
 const router = Router();
 
