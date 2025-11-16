@@ -1,7 +1,7 @@
 // src/index.ts
 import express from "express";
 import cors from "cors";
-import helmet from "helmet";
+// import helmet from "helmet";
 import dotenv from "dotenv";
 import willRoutes from "./routes/willRoutes.ts";
 import authRoutes from "./routes/authRoutes.ts";
@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 
 // --- Middleware ---
 app.use(cors()); // Enable Cross-Origin Resource Sharing
-app.use(helmet()); // Set various security HTTP headers
+// app.use(helmet()); // Set various security HTTP headers
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
