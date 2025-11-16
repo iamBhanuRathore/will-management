@@ -20,7 +20,7 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "build": "bun build ./src/index.ts ./src/vercel-entry.ts --outdir ./dist --target=node --minify",
-    "vercel-build": "cp package.json dist/ && cp .vercel_ignore dist/ 2>/dev/null || true",
+    "vercel-build": "cp package.json dist/",
     "vercel-install": "npm install -g bun && bun install"
   },
   "vercel": {
