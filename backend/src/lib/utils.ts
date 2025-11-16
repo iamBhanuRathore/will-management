@@ -1,7 +1,7 @@
 import type { User } from "@prisma/client";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
-import { prisma } from "./db.ts";
+import { prisma } from "./db";
 import { PublicKey } from "@solana/web3.js";
 
 // Define a consistent structure for the function's return value

@@ -3,8 +3,8 @@ import express from "express";
 import cors from "cors";
 // import helmet from "helmet";
 import dotenv from "dotenv";
-import willRoutes from "./routes/willRoutes.ts";
-import authRoutes from "./routes/authRoutes.ts";
+import willRoutes from "./routes/willRoutes";
+import authRoutes from "./routes/authRoutes";
 
 // Load environment variables
 dotenv.config();
