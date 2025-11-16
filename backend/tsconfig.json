@@ -4,7 +4,7 @@
     "lib": ["ESNext"],
     "target": "ESNext",
     "module": "nodenext",
-    "outDir": "./",
+    "outDir": "./dist",
     "rootDir": "./src",
     "moduleDetection": "force",
     "jsx": "react-jsx",
