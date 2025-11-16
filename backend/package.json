@@ -19,11 +19,8 @@
   },
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "start": "node dist/index.js",
     "test": "jest",
-    "build": "bun build ./src/index.ts --outdir ./dist",
-    "prepare": "husky",
-    "vercel-build": "prisma generate && prisma db push"
+    "build": "bun build ./src/index.ts --outdir ./dist"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -50,5 +47,5 @@
       "bun test --findRelatedTests --passWithNoTests"
     ]
   },
-  "version": "dev"
+  "version": "deploy"
 }
