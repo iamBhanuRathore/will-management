@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// User model: Represents any user with an account in the system.
+// A user can be a will creator, a beneficiary, or both.
+model User {
+  address            String    @id @unique // The user's public wallet address (e.g., 0x...).
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  // An optional, unique, human-readable name for the user.
+  username           String?   @unique
+  createdWills       Will[]    @relation("WillCreator")
+  // A one-time nonce for the sign-in process.
+  nonce              String?   @unique
+  sessionToken       String?
+  sessionTokenExpiry DateTime?
+
+  // Wills where this user is the designated beneficiary.
+  beneficiaryOfWills Will[]        @relation("WillBeneficiary")
+  ActionNonce        ActionNonce[]
+
+  @@index([sessionToken])
+}
+
+enum Intent {
+  CREATE_WILL
+  REVOKE_WILL
+  UPDATE_BENEFICIARY
+}
+
+model ActionNonce {
+  id        String   @id @default(cuid())
+  nonce     String   @unique
+  intent    Intent // What is this nonce for? e.g., 'CREATE_WILL'
+  expiresAt DateTime // All nonces MUST expire.
+
+  userId String
+  user   User   @relation(fields: [userId], references: [address], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum WillStatus {
+  INITIALIZED
+  ACTIVE
+  REVOKED
+  CLAIMED
+  EXPIRED // Could be useful if `timeLock` passes without claim/revocation
+}
+
+// Will model: Stores the non-sensitive metadata for a will.
+model Will {
+  id              String @id @default(cuid())
+  willName        String
+  willDescription String
+  // --- Parties Involved ---
+
+  creatorAddress     String
+  creator            User   @relation("WillCreator", fields: [creatorAddress], references: [address])
+  beneficiaryAddress String
+  beneficiary        User?  @relation("WillBeneficiary", fields: [beneficiaryAddress], references: [address])
+
+  timeLock DateTime
+  status   WillStatus @default(INITIALIZED)
+
+  // --- Timestamps ---
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // --- Relationship to the encrypted share ---
+  encryptedShare EncryptedShare?
+
+  // --- Indexes for Performance ---
+  // Index for finding all wills created by a user.
+  @@index([creatorAddress])
+  // Index for finding a will by the beneficiary's wallet address (critical).
+  @@index([beneficiaryAddress])
+}
+
+// EncryptedShare model: Stores the sensitive encrypted data.
+model EncryptedShare {
+  id                        String  @id @default(cuid())
+  share1                    String
+  share2                    String
+  encryptedUserShare        String?
+  encryptedBeneficiaryShare String?
+  // One-to-one relationship with Will.
+  willId                    String  @unique
+  will                      Will    @relation(fields: [willId], references: [id], onDelete: Cascade)
+}

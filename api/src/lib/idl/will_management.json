@@ -1,0 +1,247 @@
+{
+  "address": "CcjnCrW2Gf4WsZpcu3Jn8k4biHCwKUBn1Ce8QS7ZWP7D",
+  "metadata": {
+    "name": "will_management",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Secure will inheritance on Solana"
+  },
+  "instructions": [
+    {
+      "name": "activate_will",
+      "docs": [
+        "Instruction to activate the will (after submitting encrypted shares, if needed)."
+      ],
+      "discriminator": [
+        255,
+        144,
+        76,
+        159,
+        93,
+        119,
+        77,
+        101
+      ],
+      "accounts": [
+        {
+          "name": "will",
+          "writable": true
+        },
+        {
+          "name": "creator",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_will",
+      "docs": [
+        "Instruction for beneficiary to claim the will, updating status on-chain.",
+        "This does not release shares; it only marks the will as claimed if timelock has passed.",
+        "Backend checks this status before releasing platform shares."
+      ],
+      "discriminator": [
+        254,
+        51,
+        195,
+        63,
+        13,
+        92,
+        82,
+        140
+      ],
+      "accounts": [
+        {
+          "name": "will",
+          "writable": true
+        },
+        {
+          "name": "beneficiary",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_will",
+      "docs": [
+        "Instruction to create a new will on-chain.",
+        "Stores metadata and encrypted shares. Platform shares (share1, share2) are kept off-chain."
+      ],
+      "discriminator": [
+        45,
+        99,
+        103,
+        142,
+        128,
+        156,
+        135,
+        71
+      ],
+      "accounts": [
+        {
+          "name": "will",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "creator"
+              },
+              {
+                "kind": "arg",
+                "path": "will_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "beneficiary"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "will_name",
+          "type": "string"
+        },
+        {
+          "name": "will_description",
+          "type": "string"
+        },
+        {
+          "name": "time_lock",
+          "type": "u64"
+        },
+        {
+          "name": "encrypted_user_share",
+          "type": "bytes"
+        },
+        {
+          "name": "encrypted_beneficiary_share",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "revoke_will",
+      "docs": [
+        "Instruction to revoke the will."
+      ],
+      "discriminator": [
+        247,
+        165,
+        71,
+        120,
+        236,
+        253,
+        54,
+        12
+      ],
+      "accounts": [
+        {
+          "name": "will",
+          "writable": true
+        },
+        {
+          "name": "creator",
+          "signer": true
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "WillAccount",
+      "discriminator": [
+        53,
+        79,
+        176,
+        71,
+        204,
+        63,
+        102,
+        188
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized access."
+    },
+    {
+      "code": 6001,
+      "name": "InvalidStatus",
+      "msg": "Invalid will status."
+    },
+    {
+      "code": 6002,
+      "name": "TimelockNotExpired",
+      "msg": "Timelock has not expired."
+    },
+    {
+      "code": 6003,
+      "name": "StringTooLong",
+      "msg": "String too long."
+    },
+    {
+      "code": 6004,
+      "name": "DataTooLarge",
+      "msg": "Data too large."
+    }
+  ],
+  "types": [
+    {
+      "name": "WillAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "beneficiary",
+            "type": "pubkey"
+          },
+          {
+            "name": "time_lock",
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": "u8"
+          },
+          {
+            "name": "will_name",
+            "type": "string"
+          },
+          {
+            "name": "will_description",
+            "type": "string"
+          },
+          {
+            "name": "encrypted_user_share",
+            "type": "bytes"
+          },
+          {
+            "name": "encrypted_beneficiary_share",
+            "type": "bytes"
+          }
+        ]
+      }
+    }
+  ]
+}
