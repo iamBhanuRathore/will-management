@@ -1,18 +1,24 @@
-import { prisma } from "../lib/db";
+import { createMiddleware } from "hono/factory";
 
-export const protect = async (req: Request, res: Response, next: NextFunction) => {
-  let token;
-
-  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-    token = req.headers.authorization.split(" ")[1];
+// Extend Hono's context to include the user
+declare module "hono" {
+  interface ContextVariableMap {
+    user: {
+      address: string;
+    };
   }
+}
+
+export const protect = createMiddleware(async (c, next) => {
+  const authHeader = c.req.header("Authorization");
+  const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ success: false, message: "Not authorized, no token" });
+    return c.json({ success: false, message: "Not authorized, no token" }, 401);
   }
 
   try {
-    // Find the user by the session token and ensure it has not expired.
+    const prisma = c.get("prisma");
     const user = await prisma.user.findFirst({
       where: {
         sessionToken: token,
@@ -21,14 +27,14 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     });
 
     if (!user) {
-      return res.status(401).json({ success: false, message: "Not authorized, token failed" });
+      return c.json({ success: false, message: "Not authorized, token failed" }, 401);
     }
 
-    // Attach user to the request object
-    req.user = { address: user.address };
-    next();
+    c.set("user", { address: user.address });
+    await next();
   } catch (error) {
-    console.error(error);
-    return res.status(401).json({ success: false, message: "Not authorized, token failed" });
+    console.error("Authorization error:", error);
+    return c.json({ success: false, message: "Authorization failed" }, 401);
   }
-};
+});
+

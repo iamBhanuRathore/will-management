@@ -3,16 +3,34 @@ import { logger } from "hono/logger";
 import { cors } from "hono/cors";
 import willRoutes from "./routes/willRoutes";
 import authRoutes from "./routes/authRoutes";
-const app = new Hono();
+import { envMiddleware } from "./config/env";
+import { prismaMiddleware } from "./middleware/prisma";
+
+export type Bindings = {
+  DATABASE_URL: string;
+  RPC_URL: string;
+  [key: string]: any;
+};
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+// Middlewares
 app.use("*", logger());
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: ["http://localhost:5174", "http://localhost:5173"],
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
   })
 );
+
+// Custom middlewares for env and db
+app.use("*", envMiddleware);
+app.use("*", prismaMiddleware);
+
+// Routes
 app.get("/", (c) => {
   return c.json({
     status: "ok",

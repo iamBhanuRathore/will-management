@@ -1,8 +1,8 @@
 import type { User } from "@prisma/client";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
-import { prisma } from "./db";
 import { PublicKey } from "@solana/web3.js";
+import type { PrismaClientExtended } from "../middleware/prisma";
 
 // Define a consistent structure for the function's return value
 type VerificationResult = { success: true; user: User } | { success: false; message: string; status: 400 | 401 | 403 | 404 };
@@ -15,9 +15,15 @@ type VerificationResult = { success: true; user: User } | { success: false; mess
  * @param {string} address - The base58 encoded public key of the signer.
  * @param {string} signature - The base58 encoded signature.
  * @param {string} message - The full message that was signed.
+ * @param {PrismaClientExtended} prisma - The Prisma client instance.
  * @returns {Promise<VerificationResult>} An object indicating success or failure with details.
  */
-export const verifySolanaSignature = async (address: string, signature: string, message: string): Promise<VerificationResult> => {
+export const verifySolanaSignature = async (
+  address: string,
+  signature: string,
+  message: string,
+  prisma: PrismaClientExtended
+): Promise<VerificationResult> => {
   try {
     // 1. Retrieve the user and their expected nonce from the database
     const user = await prisma.user.findUnique({ where: { address } });
@@ -122,3 +128,4 @@ export const isValidSolanaPublicKey = (pubkey: string) => {
     return false;
   }
 };
+

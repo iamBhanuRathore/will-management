@@ -77,18 +77,16 @@ export function CreateWillModal() {
             <Label htmlFor="beneficiaryAddress">Beneficiary Address</Label>
             <Input required id="beneficiaryAddress" value={beneficiaryAddress} onChange={(e) => setBeneficiaryAddress(e.target.value)} />
           </div>
-          <div>
-            <Label htmlFor="timeLock">Time Lock (Date)</Label>
-            <Input
-              required
-              id="timeLock"
-              type="datetime-local"
-              value={formatTimeLock(timeLock)}
-              min={minTimeString}
-              // The event.target.value is a string ("YYYY-MM-DDThh:mm"), which is passed to the Date constructor.
-              onChange={(e) => setTimeLock(new Date(e.target.value))}
-            />
-          </div>
+          <Label htmlFor="timeLock">Time Lock (Date)</Label>
+          <Input
+            required
+            id="timeLock"
+            type="datetime-local"
+            // value={timeLock.toISOString().slice(0, 16)}
+            value={formatTimeLock(timeLock)}
+            min={minTimeString}
+            onChange={(e) => setTimeLock(new Date(e.target.value))}
+          />
           <div className="col-span-2">
             <Label htmlFor="secret">Wallet Secret</Label>
             <Textarea rows={3} required id="secret" value={secret} onChange={(e) => setSecret(e.target.value)} />

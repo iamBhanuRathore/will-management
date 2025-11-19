@@ -18,7 +18,7 @@ app.use(cors()); // Enable Cross-Origin Resource Sharing
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
-// --- Routes ---
+// --- Routes --
 app.get("/", (req, res) => {
   res.json({ status: "ok", message: "Will Management API is running." });
 });

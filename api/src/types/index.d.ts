@@ -1,8 +1,2 @@
-declare namespace Express {
-  export interface Request {
-    user?: {
-      // id: string; Removing this only using the address in here
-      address: string;
-    };
-  }
-}
+// This file is deprecated.
+// Hono context types are now extended in their respective middleware files (e.g., src/middleware/prisma.ts).

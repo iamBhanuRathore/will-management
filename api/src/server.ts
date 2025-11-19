@@ -1,6 +1,5 @@
-import "dotenv/config";
 import { serve } from "@hono/node-server";
-import app from "./index.js";
+import app from ".";
 
 const port = parseInt(process.env.PORT || "8080", 10);
 if (isNaN(port) || port < 1 || port > 65535) {

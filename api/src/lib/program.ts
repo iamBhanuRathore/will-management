@@ -1,11 +1,9 @@
 import idl from "./idl/will_management.json" with { type: "json" };
 import { Program } from "@coral-xyz/anchor";
-import { solanaConnection } from "./solana";
+import type { Connection } from "@solana/web3.js";
 
-export const useProgram = () => {
-  const connection = solanaConnection();
-  const programId = idl.address;
-  const program = new Program(idl, { connection });
-
-  return { program, programId };
+export const useProgram = (connection: Connection) => {
+  // The program ID is read from the IDL file's metadata.
+  const program = new Program(idl as any, { connection });
+  return { program, programId: program.programId.toBase58() };
 };
