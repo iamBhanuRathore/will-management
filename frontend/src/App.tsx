@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider.tsx";
 import Header from "./components/Header";
 import { WillProvider } from "./contexts/WillContext";
 import Landing from "./components/pages/Landing";
+import { Toaster } from "@/components/ui/sonner";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Router>
             <AuthProvider>
               <WillProvider>
+                <Toaster />
                 <AppContent />
               </WillProvider>
             </AuthProvider>

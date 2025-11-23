@@ -4,6 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react";
 import bs58 from "bs58";
 import { AUTHENTICATE_MESSAGE } from "@/lib/constant";
+import { toast } from "sonner";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -40,8 +41,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("token", sessionToken);
       apiClient.defaults.headers.common["Authorization"] = `Bearer ${sessionToken}`;
       setIsAuthenticated(true);
+      toast.success("Login successful");
     } catch (error) {
       console.error("Login failed", error);
+      toast.error("Login failed. Please try again.");
       logout();
     }
   }, [publicKey, signMessage]);
@@ -62,6 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     delete apiClient.defaults.headers.common["Authorization"];
     setIsAuthenticated(false);
     disconnect();
+    toast.info("Logged out successfully");
   };
 
   return <AuthContext.Provider value={{ isAuthenticated, logout, loading }}>{children}</AuthContext.Provider>;
