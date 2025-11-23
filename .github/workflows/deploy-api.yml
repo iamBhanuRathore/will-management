@@ -19,15 +19,18 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile # optional but recommended in CI
+        run: bun install --frozen-lockfile # Recommended for CI reproducibility
 
       - name: Deploy to Cloudflare Workers
         run: |
-          bun run deploy \
-            --secret DIRECT_URL="${{ secrets.DIRECT_URL }}" \
-            --secret DATABASE_URL="${{ secrets.DATABASE_URL }}" \
-            --secret ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}" \
-            --secret RPC_URL="${{ secrets.RPC_URL }}"
+          # Set secrets first (these get encrypted and stored on Cloudflare)
+          echo "${{ secrets.DIRECT_URL }}" | bunx wrangler secret put DIRECT_URL
+          echo "${{ secrets.DATABASE_URL }}" | bunx wrangler secret put DATABASE_URL
+          echo "${{ secrets.ALLOWED_ORIGINS }}" | bunx wrangler secret put ALLOWED_ORIGINS
+          echo "${{ secrets.RPC_URL }}" | bunx wrangler secret put RPC_URL
+
+          # Now deploy the Worker (no --secret flags)
+          bun run deploy --minify  # Add other flags like --var if needed
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
