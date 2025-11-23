@@ -33,7 +33,6 @@ app.use(
 app.use("*", envMiddleware);
 app.use("*", prismaMiddleware);
 
-// Routes
 app.get("/", (c) => {
   return c.json({
     status: "ok",
