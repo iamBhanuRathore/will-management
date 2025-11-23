@@ -54,3 +54,37 @@ export const verifySchema = z.object({
     signature: z.string().min(1, "Signature cannot be empty."),
   }),
 });
+
+// Schema for initiating will creation
+export const initiateCreationSchema = z.object({
+  json: z.object({
+    userPublicKey: z.string().refine((val) => {
+      try {
+        new PublicKey(val);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }, "Invalid Solana public key format."),
+    beneficiaryPublicKey: z.string().refine((val) => {
+      try {
+        new PublicKey(val);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }, "Invalid Solana public key format."),
+    R2_hex: z.string().min(1, "R2_hex is required."),
+    U3: z.string().min(1, "U3 is required."),
+    U4: z.string().min(1, "U4 is required."),
+    B3: z.string().min(1, "B3 is required."),
+    B4: z.string().min(1, "B4 is required."),
+    signedPayload: z.string().min(1, "signedPayload is required."),
+    message: z.string().min(1, "message is required."),
+    willDescription: z.string().optional().default(""),
+    willName: z.string().optional().default(""),
+    timeLock: z.number().refine((val) => !isNaN(new Date(val).getTime()), {
+      message: "timeLock must be a valid timestamp.",
+    }),
+  }),
+});

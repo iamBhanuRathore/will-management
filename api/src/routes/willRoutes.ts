@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { protect } from "../middleware/auth";
-import { createWillSchema, inheritWillSchema } from "../schema/index";
+import { createWillSchema, inheritWillSchema, initiateCreationSchema } from "../schema/index";
 // import secrets from "secrets.js-grempe";
 import { PublicKey } from "@solana/web3.js";
 import crypto from "crypto";
@@ -196,20 +196,13 @@ willRoutes.get("/creation-nonce", protect, async (c) => {
 // ====================================================================
 // 5. Initiate will creation
 // ====================================================================
-willRoutes.post("/initiate-creation", protect, async (c) => {
+willRoutes.post("/initiate-creation", protect, zValidator("json", initiateCreationSchema.shape.json), async (c) => {
   const prisma = c.get("prisma");
   const user = c.get("user");
-  const body = await c.req.json();
+  const body = c.req.valid("json");
   const secretsModule = await import("secrets.js-grempe");
   const secrets = secretsModule.default || secretsModule;
-  const { userPublicKey, beneficiaryPublicKey, R2_hex, U3, U4, B3, B4, signedPayload, message, willDescription = "", willName = "", timeLock } = body;
-
-  if (!userPublicKey || !beneficiaryPublicKey || !R2_hex || !U3 || !U4 || !B3 || !B4 || !timeLock) {
-    return c.json({ success: false, message: "Missing required fields for will creation." }, 400);
-  }
-  if (!isValidSolanaPublicKey(userPublicKey) || !isValidSolanaPublicKey(beneficiaryPublicKey)) {
-    return c.json({ success: false, message: "Invalid Solana public key format." }, 400);
-  }
+  const { userPublicKey, beneficiaryPublicKey, R2_hex, U3, U4, B3, B4, signedPayload, message, willDescription, willName, timeLock } = body;
 
   let serverShares: string[] = [];
 

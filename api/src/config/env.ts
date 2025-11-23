@@ -4,6 +4,7 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   RPC_URL: z.string().url(),
+  ALLOWED_ORIGINS: z.string().default("http://localhost:5173,http://localhost:5174"),
 });
 
 export type Env = z.infer<typeof envSchema>;

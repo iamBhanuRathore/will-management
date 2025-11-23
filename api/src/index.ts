@@ -19,7 +19,10 @@ app.use("*", logger());
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:5174", "http://localhost:5173"],
+    origin: (origin, c) => {
+      const allowedOrigins = c.env.ALLOWED_ORIGINS.split(",");
+      return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+    },
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
