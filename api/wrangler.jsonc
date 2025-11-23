@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "legacy-lock",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-11-09",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://will-management-4xfv9gm46-bhanuo07s-projects.vercel.app"
+  }
+}
