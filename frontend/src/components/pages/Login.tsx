@@ -19,9 +19,7 @@ const Login = () => {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="text-3xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>
-            Connect your wallet to access your dashboard and manage your wills.
-          </CardDescription>
+          <CardDescription>Connect your wallet to access your dashboard and manage your wills.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6 p-6">
           <WalletMultiButton />

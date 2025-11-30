@@ -26,7 +26,7 @@ jobs:
           # Set secrets first (these get encrypted and stored on Cloudflare)
           echo "${{ secrets.DIRECT_URL }}" | bunx wrangler secret put DIRECT_URL
           echo "${{ secrets.DATABASE_URL }}" | bunx wrangler secret put DATABASE_URL
-          echo "${{ secrets.ALLOWED_ORIGINS }}" | bunx wrangler secret put ALLOWED_ORIGINS
+          echo "${{ vars.ALLOWED_ORIGINS }}" | bunx wrangler secret put ALLOWED_ORIGINS
           echo "${{ secrets.RPC_URL }}" | bunx wrangler secret put RPC_URL
 
           # Now deploy the Worker (no --secret flags)
