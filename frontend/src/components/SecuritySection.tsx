@@ -3,32 +3,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const features = [
   {
-    icon: <ShieldCheck className="w-10 h-10 text-primary" />,
+    icon: <ShieldCheck className="w-10 h-10 text-primary/80" />,
     title: "Bank-Grade Encryption",
     description: "Your data is encrypted with AES-256 before it ever leaves your device. We never see your raw data.",
-    gradient: "from-green-500 to-emerald-600",
-    textGradient: "from-green-400 to-emerald-500",
+    gradient: "from-emerald-900/50 to-teal-900/50",
+    textGradient: "from-emerald-400 to-teal-400",
   },
   {
-    icon: <Lock className="w-10 h-10 text-primary" />,
+    icon: <Lock className="w-10 h-10 text-primary/80" />,
     title: "Shamir's Secret Sharing",
     description: "Your key is split into multiple parts. No single part can unlock your will. It requires a threshold to reconstruct.",
-    gradient: "from-violet-500 to-purple-600",
-    textGradient: "from-violet-400 to-purple-500",
+    gradient: "from-violet-900/50 to-purple-900/50",
+    textGradient: "from-violet-400 to-purple-400",
   },
   {
-    icon: <Server className="w-10 h-10 text-primary" />,
+    icon: <Server className="w-10 h-10 text-primary/80" />,
     title: "Decentralized Storage",
     description: "Encrypted shares are distributed across the Solana blockchain, ensuring no single point of failure.",
-    gradient: "from-blue-500 to-indigo-600",
-    textGradient: "from-blue-400 to-indigo-500",
+    gradient: "from-blue-900/50 to-indigo-900/50",
+    textGradient: "from-blue-400 to-indigo-400",
   },
   {
-    icon: <Eye className="w-10 h-10 text-primary" />,
+    icon: <Eye className="w-10 h-10 text-primary/80" />,
     title: "Transparent Code",
     description: "Our smart contracts are open-source and verified. You can inspect exactly how your will is handled.",
-    gradient: "from-amber-500 to-orange-600",
-    textGradient: "from-amber-400 to-orange-500",
+    gradient: "from-amber-900/50 to-orange-900/50",
+    textGradient: "from-amber-400 to-orange-400",
   },
 ];
 
