@@ -5,17 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWill } from "@/contexts/WillContext";
 import { Textarea } from "@/components/ui/textarea";
-import { format, addMinutes } from "date-fns";
-
-const DATETIME_LOCAL_FORMAT = "yyyy-MM-dd'T'HH:mm";
+import { addYears, format, isValid } from "date-fns";
 
 const getUpdateDate = (): Date => {
-  // return addDays(new Date(), 1);
-  return addMinutes(new Date(), 1);
-};
-
-const formatTimeLock = (date: Date): string => {
-  return format(date, DATETIME_LOCAL_FORMAT);
+  return addYears(new Date(), 1);
 };
 
 export function CreateWillModal() {
@@ -23,16 +16,14 @@ export function CreateWillModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 💡 Initialize with valid test data
-  const [willName, setWillName] = useState("testing");
-  const [willDescription, setWillDescription] = useState("Description Testing");
-  const [beneficiaryAddress, setBeneficiaryAddress] = useState("6XCVkH9GbxjNTpjwvWXFEHteMsyak3VKFTc5sQc2udHX");
+  const [willName, setWillName] = useState("");
+  const [willDescription, setWillDescription] = useState("");
+  const [beneficiaryAddress, setBeneficiaryAddress] = useState("");
 
   // State holds the Date object
   const [timeLock, setTimeLock] = useState<Date>(getUpdateDate());
-  // The minimum date string for the 'min' attribute
-  const minTimeString = formatTimeLock(getUpdateDate());
 
-  const [secret, setSecret] = useState("Secret to be Tested");
+  const [secret, setSecret] = useState("");
   const { createWill } = useWill();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,11 +58,11 @@ export function CreateWillModal() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="willName">Will Name</Label>
-            <Input id="willName" value={willName} onChange={(e) => setWillName(e.target.value)} />
+            <Input required id="willName" value={willName} onChange={(e) => setWillName(e.target.value)} />
           </div>
           <div>
             <Label htmlFor="willDescription">Description</Label>
-            <Input id="willDescription" value={willDescription} onChange={(e) => setWillDescription(e.target.value)} />
+            <Input required id="willDescription" value={willDescription} onChange={(e) => setWillDescription(e.target.value)} />
           </div>
           <div>
             <Label htmlFor="beneficiaryAddress">Beneficiary Address</Label>
@@ -82,14 +73,18 @@ export function CreateWillModal() {
             required
             id="timeLock"
             type="datetime-local"
-            // value={timeLock.toISOString().slice(0, 16)}
-            value={formatTimeLock(timeLock)}
-            min={minTimeString}
-            onChange={(e) => setTimeLock(new Date(e.target.value))}
+            value={isValid(timeLock) ? format(timeLock, "yyyy-MM-dd'T'HH:mm") : ""}
+            min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+            onChange={(e) => {
+              const newDate = new Date(e.target.value);
+              if (isValid(newDate)) {
+                setTimeLock(newDate);
+              }
+            }}
           />
           <div className="col-span-2">
             <Label htmlFor="secret">Wallet Secret</Label>
-            <Textarea rows={3} required id="secret" value={secret} onChange={(e) => setSecret(e.target.value)} />
+            <Textarea required rows={3} id="secret" value={secret} onChange={(e) => setSecret(e.target.value)} />
           </div>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Creating..." : "Create Will"}

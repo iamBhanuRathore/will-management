@@ -10,6 +10,7 @@ import Header from "./components/Header";
 import { WillProvider } from "./contexts/WillContext";
 import Landing from "./components/pages/Landing";
 import { Toaster } from "@/components/ui/sonner";
+import { useDevnetAirdrop } from "@/hooks/useDevnetAirdrop";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
 }
 
 const AppContent = () => {
+  useDevnetAirdrop();
   const location = useLocation();
   const showHeader = location.pathname !== "/";
 

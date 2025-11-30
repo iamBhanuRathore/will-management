@@ -10,7 +10,7 @@ import { format } from "date-fns";
 import { InheritWillModal } from "../InheritWillModal";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { solanaConnection } from "@/lib/solana";
-import { Wallet, FileText, Clock, Shield, ArrowRight, History, User, AlertCircle } from "lucide-react";
+import { Wallet, FileText, Clock, Shield, ArrowRight, History, User, AlertCircle, Activity } from "lucide-react";
 
 const Dashboard = () => {
   const { myWills, beneficiaryWills, loading, fetchWills } = useWill();
@@ -40,31 +40,32 @@ const Dashboard = () => {
   }, [publicKey]);
 
   const getStatusBadge = (status: string) => {
-    let variant: "default" | "destructive" | "outline" | "secondary" = "default";
     let className = "";
+    let icon = null;
 
     switch (status) {
       case "INITIALIZED":
-        variant = "default";
-        className = "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/20";
+        className = "bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20";
+        icon = <Activity className="w-3 h-3 mr-1" />;
         break;
       case "REVOKED":
-        variant = "destructive";
-        className = "bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20";
+        className = "bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20";
+        icon = <AlertCircle className="w-3 h-3 mr-1" />;
         break;
       case "CLAIMED":
-        variant = "outline";
-        className = "bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20";
+        className = "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20";
+        icon = <Shield className="w-3 h-3 mr-1" />;
         break;
       case "EXPIRED":
-        variant = "secondary";
-        className = "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border-yellow-500/20";
+        className = "bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20";
+        icon = <Clock className="w-3 h-3 mr-1" />;
         break;
       default:
-        variant = "default";
+        className = "bg-gray-500/10 text-gray-500 border-gray-500/20";
     }
     return (
-      <Badge variant={variant} className={className}>
+      <Badge variant="outline" className={`px-2 py-0.5 transition-colors ${className}`}>
+        {icon}
         {status}
       </Badge>
     );
@@ -73,7 +74,7 @@ const Dashboard = () => {
   const renderSkeleton = () => (
     <div className="space-y-4">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="flex items-center space-x-4">
+        <div key={i} className="flex items-center space-x-4 p-4 rounded-lg bg-muted/50 animate-pulse">
           <Skeleton className="h-12 w-12 rounded-full" />
           <div className="space-y-2 flex-1">
             <Skeleton className="h-4 w-[250px]" />
@@ -84,209 +85,255 @@ const Dashboard = () => {
     </div>
   );
 
-  const StatCard = ({ title, value, icon: Icon, description, gradient }: any) => (
-    <Card className="overflow-hidden relative border-none shadow-lg hover:shadow-xl transition-all duration-300">
-      <div className={`absolute inset-0 opacity-10 ${gradient}`}></div>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground z-10">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground z-10" />
+  const StatCard = ({ title, value, icon: Icon, description, gradient, iconColor }: any) => (
+    <Card className="overflow-hidden relative border-none shadow-lg hover:shadow-xl transition-all duration-300 group bg-card/50 backdrop-blur-sm">
+      <div className={`absolute inset-0 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity ${gradient}`}></div>
+      <div className={`absolute -right-6 -top-6 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500 rotate-12`}>
+        <Icon className={`h-32 w-32 ${iconColor}`} />
+      </div>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className={`p-2 rounded-xl bg-background/50 backdrop-blur-md border border-white/10 shadow-sm ${iconColor}`}>
+          <Icon className="h-4 w-4" />
+        </div>
       </CardHeader>
       <CardContent className="z-10 relative">
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
+        <p className="text-xs text-muted-foreground mt-1 font-medium">{description}</p>
       </CardContent>
     </Card>
   );
 
   return (
-    <div className="container mx-auto p-6 space-y-8 min-h-screen bg-background/50 bg-grid-pattern">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">Dashboard</h1>
-          <p className="text-muted-foreground text-lg">Manage your digital legacy and inheritance securely.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="px-3 py-1 text-sm bg-background/50 backdrop-blur">
-            <div className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse" />
-            Devnet Connected
-          </Badge>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Background Ambient Effects */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_hsl(var(--primary)/0.15),_transparent_60%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_hsl(var(--accent)/0.1),_transparent_60%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.02] pointer-events-none" />
 
-      {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-        <Card className="col-span-1 md:col-span-2 bg-gradient-to-br from-primary/90 to-purple-600/90 text-primary-foreground border-none shadow-xl relative overflow-hidden group">
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-          <div className="absolute -right-10 -top-10 h-64 w-64 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-500"></div>
-          <CardHeader>
-            <CardTitle className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-primary-foreground/80 font-medium">Total Balance</p>
-                <h2 className="text-4xl font-bold tracking-tight">{balance.toFixed(4)} SOL</h2>
-              </div>
-              <div className="p-2 bg-white/10 rounded-xl backdrop-blur-md">
-                <Wallet className="h-6 w-6 text-white" />
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm text-primary-foreground/80 bg-black/10 w-fit px-3 py-1 rounded-full backdrop-blur-sm">
-                <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                Wallet Connected
-              </div>
-              {publicKey && (
+      <div className="container mx-auto p-6 space-y-8 relative z-10">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up">
+          <div className="space-y-1">
+            <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground to-foreground/70">Dashboard</h1>
+            <p className="text-muted-foreground text-lg">Manage your digital legacy and inheritance securely.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="px-3 py-1.5 text-sm bg-background/50 backdrop-blur border-primary/20 shadow-sm">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              Devnet Connected
+            </Badge>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+          {/* Total Balance Card */}
+          <Card className="col-span-1 md:col-span-2 bg-gradient-to-br from-violet-900/90 via-indigo-900/90 to-background text-white border-white/10 shadow-2xl relative overflow-hidden group">
+            {/* Abstract Background Shapes */}
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/30 transition-all duration-700"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 group-hover:bg-blue-500/30 transition-all duration-700"></div>
+
+            <CardHeader className="relative z-10 pb-2">
+              <CardTitle className="flex justify-between items-start">
                 <div className="space-y-1">
-                  <p className="text-xs text-primary-foreground/60 uppercase tracking-wider">Wallet Address</p>
-                  <a
-                    href={`https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=devnet`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-mono hover:text-white transition-colors flex items-center gap-2 opacity-90 hover:opacity-100"
-                  >
-                    {publicKey.toBase58().slice(0, 8)}...{publicKey.toBase58().slice(-8)}
-                    <ArrowRight className="h-3 w-3" />
-                  </a>
+                  <p className="text-white/60 font-medium text-xs uppercase tracking-[0.2em]">Total Balance</p>
+                  <h2 className="text-4xl md:text-5xl font-bold tracking-tight mt-1 font-mono">
+                    {balance.toFixed(4)} <span className="text-2xl text-white/50 font-sans">SOL</span>
+                  </h2>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <StatCard title="Active Wills" value={myWills.length} icon={FileText} description="Wills you have created" gradient="bg-blue-500" />
-        <StatCard title="Pending Inheritance" value={beneficiaryWills.filter((w: any) => w.status !== "CLAIMED").length} icon={Clock} description="Wills waiting for you" gradient="bg-purple-500" />
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid gap-8 lg:grid-cols-12 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-        {/* Created Wills Section */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <Shield className="h-6 w-6 text-primary" />
-                Created Wills
-              </h2>
-              <p className="text-muted-foreground">Manage the wills you have created for your beneficiaries.</p>
-            </div>
-            <CreateWillModal />
-          </div>
-
-          <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm">
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="p-6">{renderSkeleton()}</div>
-              ) : myWills.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-                  <div className="p-4 bg-primary/5 rounded-full">
-                    <FileText className="h-12 w-12 text-primary/40" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">No Wills Created Yet</h3>
-                    <p className="text-muted-foreground max-w-sm mx-auto">Start securing your digital legacy by creating your first will today.</p>
-                  </div>
-                  <CreateWillModal />
+                <div className="p-3 bg-white/5 rounded-2xl backdrop-blur-md border border-white/10 shadow-inner group-hover:bg-white/10 transition-colors">
+                  <Wallet className="h-6 w-6 text-white/90" />
                 </div>
-              ) : (
-                <div className="rounded-md border overflow-hidden">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead className="font-semibold">Will Name</TableHead>
-                        <TableHead className="font-semibold">Beneficiary</TableHead>
-                        <TableHead className="font-semibold">Status</TableHead>
-                        <TableHead className="text-right font-semibold">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {myWills.map((will: any) => (
-                        <TableRow key={will.id} className="hover:bg-muted/50 transition-colors">
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <div className="p-2 bg-primary/10 rounded-md">
-                                <FileText className="h-4 w-4 text-primary" />
-                              </div>
-                              {will.willName}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <User className="h-4 w-4" />
-                              <span className="font-mono text-xs">{will.beneficiaryName || `${will.beneficiaryAddress.slice(0, 6)}...`}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(will.status)}</TableCell>
-                          <TableCell className="text-right font-mono">{will.amount ? `${will.amount} SOL` : "-"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Inherited Wills Section */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <History className="h-6 w-6 text-purple-600" />
-                Inheritance
-              </h2>
-              <p className="text-muted-foreground">Wills assigned to you.</p>
-            </div>
-          </div>
-
-          <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm h-full">
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="p-6">{renderSkeleton()}</div>
-              ) : beneficiaryWills.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-                  <div className="p-4 bg-purple-500/5 rounded-full">
-                    <Clock className="h-12 w-12 text-purple-500/40" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">No Inheritance Found</h3>
-                    <p className="text-muted-foreground max-w-xs mx-auto">You haven't been designated as a beneficiary in any wills yet.</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {beneficiaryWills.map((will: any) => (
-                    <div key={will.id} className="p-4 hover:bg-muted/50 transition-all duration-200 group">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="space-y-1">
-                          <h4 className="font-semibold text-base flex items-center gap-2">
-                            {will.willName}
-                            {getStatusBadge(will.status)}
-                          </h4>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            From: <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">{will.creator.username || will.creator.address.slice(0, 8)}...</span>
-                          </p>
-                        </div>
-                        <InheritWillModal will={will} onClaimed={() => {}} />
-                      </div>
-
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>Unlock: {format(will.timeLock, "dd MMM yyyy")}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          <span>{will.status === "CLAIMED" ? "Claimed" : "Pending"}</span>
-                        </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="relative z-10 mt-6">
+              <div className="space-y-6">
+                {publicKey && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">Wallet Address</p>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.6)]"></div>
+                        <span className="text-[10px] text-emerald-400 font-medium tracking-wide">Active</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <a
+                      href={`https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=devnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-black/40 hover:bg-black/50 transition-all duration-300 backdrop-blur-md border border-white/5 group/link hover:border-white/20 hover:shadow-lg"
+                    >
+                      <span className="font-mono text-sm tracking-wider text-white/90">
+                        {publicKey.toBase58().slice(0, 8)}...{publicKey.toBase58().slice(-8)}
+                      </span>
+                      <ArrowRight className="h-4 w-4 text-white/40 group-hover/link:text-white group-hover/link:translate-x-1 transition-all" />
+                    </a>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
+
+          <StatCard title="Active Wills" value={myWills.length} icon={FileText} description="Wills you have created" gradient="bg-blue-500" iconColor="text-blue-500" />
+          <StatCard
+            title="Pending Inheritance"
+            value={beneficiaryWills.filter((w: any) => w.status !== "CLAIMED").length}
+            icon={Clock}
+            description="Wills waiting for you"
+            gradient="bg-purple-500"
+            iconColor="text-purple-500"
+          />
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid gap-8 lg:grid-cols-12 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+          {/* Created Wills Section */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                  <Shield className="h-6 w-6 text-primary" />
+                  Created Wills
+                </h2>
+                <p className="text-muted-foreground">Manage the wills you have created.</p>
+              </div>
+              <CreateWillModal />
+            </div>
+
+            <Card className="border-border/50 shadow-lg bg-card/40 backdrop-blur-xl overflow-hidden">
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="p-6">{renderSkeleton()}</div>
+                ) : myWills.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
+                    <div className="p-6 bg-primary/5 rounded-full border border-primary/10 animate-pulse">
+                      <FileText className="h-12 w-12 text-primary/40" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-semibold">No Wills Created Yet</h3>
+                      <p className="text-muted-foreground max-w-sm mx-auto">Start securing your digital legacy by creating your first will today.</p>
+                    </div>
+                    <CreateWillModal />
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-muted/30">
+                        <TableRow className="hover:bg-transparent border-b border-border/50">
+                          <TableHead className="font-semibold pl-6">Will Name</TableHead>
+                          <TableHead className="font-semibold">Beneficiary</TableHead>
+                          <TableHead className="font-semibold">Status</TableHead>
+                          <TableHead className="text-right font-semibold pr-6">Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {myWills.map((will: any) => (
+                          <TableRow key={will.id} className="hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0">
+                            <TableCell className="font-medium pl-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                                  <FileText className="h-4 w-4" />
+                                </div>
+                                <span className="font-semibold">{will.willName}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2 text-muted-foreground bg-muted/30 px-2 py-1 rounded-md w-fit">
+                                <User className="h-3.5 w-3.5" />
+                                <span className="font-mono text-xs">{will.beneficiaryName || `${will.beneficiaryAddress.slice(0, 6)}...`}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>{getStatusBadge(will.status)}</TableCell>
+                            <TableCell className="text-right font-mono pr-6">
+                              {will.amount ? (
+                                <span className="font-bold text-foreground">
+                                  {will.amount} <span className="text-xs text-muted-foreground font-normal">SOL</span>
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Inherited Wills Section */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                  <History className="h-6 w-6 text-purple-500" />
+                  Inheritance
+                </h2>
+                <p className="text-muted-foreground">Wills assigned to you.</p>
+              </div>
+            </div>
+
+            <Card className="border-border/50 shadow-lg bg-card/40 backdrop-blur-xl h-full overflow-hidden flex flex-col">
+              <CardContent className="p-0 flex-1">
+                {loading ? (
+                  <div className="p-6">{renderSkeleton()}</div>
+                ) : beneficiaryWills.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center space-y-6 h-full">
+                    <div className="p-6 bg-purple-500/5 rounded-full border border-purple-500/10">
+                      <Clock className="h-12 w-12 text-purple-500/40" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-semibold">No Inheritance Found</h3>
+                      <p className="text-muted-foreground max-w-xs mx-auto">You haven't been designated as a beneficiary in any wills yet.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/40">
+                    {beneficiaryWills.map((will: any) => (
+                      <div key={will.id} className="p-5 hover:bg-muted/30 transition-all duration-200 group relative overflow-hidden">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-purple-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="space-y-1.5">
+                            <h4 className="font-bold text-lg flex items-center gap-2">{will.willName}</h4>
+                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                              <span className="opacity-70">From:</span>
+                              <span className="font-mono text-xs bg-muted/50 px-1.5 py-0.5 rounded border border-border/50">{will.creator.username || will.creator.address.slice(0, 8)}...</span>
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            {getStatusBadge(will.status)}
+                            <InheritWillModal will={will} onClaimed={() => {}} />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 p-2.5 rounded-lg border border-border/30">
+                            <Clock className="h-3.5 w-3.5 text-purple-500" />
+                            <div className="flex flex-col">
+                              <span className="opacity-70 text-[10px] uppercase tracking-wider">Unlock Date</span>
+                              <span className="font-medium">{format(will.timeLock, "dd MMM yyyy")}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 p-2.5 rounded-lg border border-border/30">
+                            <Activity className="h-3.5 w-3.5 text-blue-500" />
+                            <div className="flex flex-col">
+                              <span className="opacity-70 text-[10px] uppercase tracking-wider">Status</span>
+                              <span className="font-medium">{will.status === "CLAIMED" ? "Claimed" : "Pending"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

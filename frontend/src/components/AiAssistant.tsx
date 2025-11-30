@@ -14,10 +14,11 @@ const AIAssistant = () => {
           <p className="text-xl text-muted-foreground">Your trusted custodian of digital legacies</p>
         </div>
 
-        <Card className="border border-border shadow-lg hover:shadow-xl transition-shadow">
-          <CardHeader className="space-y-4 bg-gradient-to-br from-card to-secondary/20">
+        <Card className="border border-border shadow-lg hover:shadow-xl transition-shadow overflow-hidden relative">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500" />
+          <CardHeader className="space-y-4 bg-gradient-to-br from-card via-purple-500/5 to-blue-500/5">
             <div className="flex items-start gap-4">
-              <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 shadow-inner">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20 shadow-inner">
                 <Bot className="w-10 h-10 text-primary" />
               </div>
               <div className="flex-1">
@@ -48,7 +49,7 @@ const AIAssistant = () => {
 
             <div className="pt-6 border-t border-border">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-accent" />
+                <Sparkles className="w-5 h-5 text-primary" />
                 Core Identity
               </h3>
               <p className="text-muted-foreground leading-relaxed text-base">

@@ -41,8 +41,9 @@ const FeatureCard = ({ feature, index }: { feature: Feature; index: number }) =>
 const Hero = () => {
   return (
     <section id="hero" className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-background">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_hsl(var(--primary)/0.1),_transparent_60%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_hsl(var(--accent)/0.05),_transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_hsl(265_60%_50%/0.15),_transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_hsl(200_70%_50%/0.1),_transparent_60%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_hsl(340_70%_50%/0.08),_transparent_60%)]" />
       <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] [mask-image:linear-gradient(to_bottom,white_20%,transparent_100%)]" />
 
       <div className="container relative z-10 mx-auto px-4 py-20">
@@ -56,7 +57,8 @@ const Hero = () => {
             className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-br from-foreground via-foreground/80 to-foreground/60 bg-clip-text text-transparent leading-tight animate-fade-in-up"
             style={{ animationDelay: "0.2s" }}
           >
-            Secure Your Digital Legacy with <span className="bg-accent text-accent-foreground/70 rounded-sm">&nbsp; LegacyLock &nbsp;</span>
+            Secure Your Digital Legacy with &nbsp;
+            <pre className="bg-accent text-accent-foreground/70 rounded-sm inline-block px-3">LegacyLock</pre>
           </h1>
 
           <p className="text-xl md:text-2xl mb-12 text-muted-foreground max-w-2xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
