@@ -39,6 +39,7 @@ app.get("/", (c) => {
     message: "Will Management API is running.",
   });
 });
+
 app.route("/api/will", willRoutes);
 app.route("/api/auth", authRoutes);
 
