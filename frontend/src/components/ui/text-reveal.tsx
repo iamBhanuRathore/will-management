@@ -52,7 +52,7 @@ export function TextReveal({ text, className }: TextRevealProps) {
   return (
     <motion.div ref={ref} variants={container} initial="hidden" animate={controls} className={cn("flex flex-wrap", className)}>
       {words.map((word, idx) => (
-        <motion.span variants={child} key={idx} className="mr-2 inline-block">
+        <motion.span variants={{ child }} key={idx} className="mr-2 inline-block">
           {word}
         </motion.span>
       ))}

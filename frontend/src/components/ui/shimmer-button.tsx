@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ButtonHTMLAttributes, ReactNode } from "react";
+import { type ButtonHTMLAttributes, type ReactNode } from "react";
 
 interface ShimmerButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
@@ -39,9 +39,6 @@ export function ShimmerButton({
         "before:opacity-30",
         className
       )}
-      style={{
-        background: "var(--background)",
-      }}
       {...props}
     >
       <span className="relative z-10 flex items-center gap-2">{children}</span>
