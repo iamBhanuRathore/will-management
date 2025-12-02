@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Server, User, Users, Lock, Unlock, Database, Key } from "lucide-react";
+import { Shield, Server, User, Users, Lock, Unlock, Database, Key, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 
 const TechnicalArchitecture = () => {
   return (
@@ -10,14 +11,17 @@ const TechnicalArchitecture = () => {
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
-      <div className="container mx-auto max-w-6xl relative z-10">
-        <div className="text-center mb-16">
-          <Badge variant="outline" className="mb-4 px-3 py-1 border-primary/20 text-primary bg-primary/5">
-            Under The Hood
-          </Badge>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">Split-Server Trust Architecture</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">We use a 3-out-of-4 Shamir's Secret Sharing threshold to ensure no single party can ever access your data unilaterally.</p>
-        </div>
+      <div className="container mx-auto max-w-7xl relative z-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="text-center mb-20">
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 mb-6 rounded-full glass-effect border border-primary/20">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">Under The Hood</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-extrabold mb-6 bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">Split-Server Trust Architecture</h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            We use a <span className="text-primary font-semibold">3-out-of-4 Shamir's Secret Sharing</span> threshold to ensure no single party can ever access your data unilaterally.
+          </p>
+        </motion.div>
 
         {/* Visual Architecture Diagram */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-20">

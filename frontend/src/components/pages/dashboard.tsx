@@ -105,22 +105,20 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background Ambient Effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_hsl(var(--primary)/0.15),_transparent_60%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_hsl(var(--accent)/0.1),_transparent_60%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-grid-pattern opacity-[0.02] pointer-events-none" />
-
-      <div className="container mx-auto p-6 space-y-8 relative z-10">
+    <div className="min-h-screen bg-background/50">
+      <div className="container mx-auto p-6 space-y-8 max-w-7xl">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-border/40">
           <div className="space-y-1">
-            <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground to-foreground/70">Dashboard</h1>
-            <p className="text-muted-foreground text-lg">Manage your digital legacy and inheritance securely.</p>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">Overview of your digital assets and inheritance.</p>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="px-3 py-1.5 text-sm bg-background/50 backdrop-blur border-primary/20 shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+            <Badge variant="outline" className="px-3 py-1.5 gap-2 bg-background">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
               Devnet Connected
             </Badge>
           </div>
@@ -240,7 +238,7 @@ const Dashboard = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2 text-muted-foreground bg-muted/30 px-2 py-1 rounded-md w-fit">
+                              <div title={will.beneficiaryAddress} className="flex items-center gap-2 text-muted-foreground bg-muted/30 px-2 py-1 rounded-md w-fit">
                                 <User className="h-3.5 w-3.5" />
                                 <span className="font-mono text-xs">{will.beneficiaryName || `${will.beneficiaryAddress.slice(0, 6)}...`}</span>
                               </div>
@@ -277,12 +275,12 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <Card className="border-border/50 shadow-lg bg-card/40 backdrop-blur-xl h-full overflow-hidden flex flex-col">
-              <CardContent className="p-0 flex-1">
+            <Card className="border-border/50 shadow-lg bg-card/40 backdrop-blur-xl overflow-hidden flex flex-col">
+              <CardContent className="p-0">
                 {loading ? (
                   <div className="p-6">{renderSkeleton()}</div>
                 ) : beneficiaryWills.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-center space-y-6 h-full">
+                  <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
                     <div className="p-6 bg-purple-500/5 rounded-full border border-purple-500/10">
                       <Clock className="h-12 w-12 text-purple-500/40" />
                     </div>

@@ -1,6 +1,6 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Card } from "@/components/ui/card";
-import { MessageCircle } from "lucide-react";
+import { HelpCircle } from "lucide-react";
+import { motion } from "framer-motion";
 
 const QASection = () => {
   const qaItems = [
@@ -32,29 +32,35 @@ const QASection = () => {
   ];
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-secondary/20 to-background">
-      <div className="container mx-auto max-w-4xl">
-        <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-primary/10 backdrop-blur-sm border border-primary/20">
-            <MessageCircle className="w-4 h-4 text-accent" />
-            <span className="text-sm font-medium">Common Questions</span>
+    <section className="py-24 px-4 bg-background relative overflow-hidden">
+      <div className="container mx-auto max-w-4xl relative z-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-secondary/50 border border-border/50 backdrop-blur-sm">
+            <HelpCircle className="w-3 h-3 text-primary" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Common Questions</span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">Frequently Asked Questions</h2>
-          <p className="text-xl text-muted-foreground">Everything you need to know about securing your digital legacy</p>
-        </div>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Frequently Asked Questions</h2>
+          <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">Everything you need to know about securing your digital legacy.</p>
+        </motion.div>
 
-        <Card className="border border-border shadow-lg hover:shadow-xl transition-shadow">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="bg-card/50 border border-border/50 rounded-2xl overflow-hidden"
+        >
           <Accordion type="single" collapsible className="w-full">
             {qaItems.map((item, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border-b border-border last:border-0">
-                <AccordionTrigger className="px-6 py-5 hover:no-underline hover:bg-primary/5 transition-colors">
-                  <span className="text-lg font-semibold text-left">{item.question}</span>
+              <AccordionItem key={index} value={`item-${index}`} className="border-b border-border/50 last:border-0">
+                <AccordionTrigger className="px-6 py-5 hover:no-underline hover:bg-muted/30 transition-all group">
+                  <span className="text-lg font-medium text-left pr-4 group-hover:text-primary transition-colors">{item.question}</span>
                 </AccordionTrigger>
-                <AccordionContent className="px-6 pb-5 text-muted-foreground leading-relaxed text-base">{item.answer}</AccordionContent>
+                <AccordionContent className="px-6 pb-6 pt-2 text-muted-foreground leading-relaxed text-base bg-muted/10">{item.answer}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
-        </Card>
+        </motion.div>
       </div>
     </section>
   );
