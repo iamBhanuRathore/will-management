@@ -30,7 +30,6 @@ function App() {
     </ThemeProvider>
   );
 }
-
 const AppContent = () => {
   useDevnetAirdrop();
   const location = useLocation();
